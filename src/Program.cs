@@ -1947,6 +1947,7 @@ namespace LumaDeck
         private readonly DisplayEngine engine;
         private readonly JavaScriptSerializer json = new JavaScriptSerializer { MaxJsonLength = 10485760 };
         private bool reallyExiting = false;
+        private bool _wasMaximizedBeforeHide = false;
         private readonly bool startMinimized;
         private bool hotkeyRegistered = false;
         private System.Windows.Forms.Timer refreshDebounce;
@@ -2241,9 +2242,7 @@ namespace LumaDeck
         {
             if (startMinimized)
             {
-                this.Opacity = 0;
-                this.ShowInTaskbar = false;
-                this.Hide();
+                HideToTray();
             }
 
             try
@@ -2468,13 +2467,7 @@ namespace LumaDeck
                     }
                     else
                     {
-                        Screen scr = Screen.FromHandle(this.Handle);
-                        Rectangle scrWork = scr.WorkingArea;
-                        this.MaximizedBounds = new Rectangle(
-                            scrWork.X - scr.Bounds.X,
-                            scrWork.Y - scr.Bounds.Y,
-                            scrWork.Width,
-                            scrWork.Height);
+                        ApplyMaximizedBounds();
                         this.WindowState = FormWindowState.Maximized;
                     }
                     NotifyWindowState();
@@ -2585,24 +2578,54 @@ namespace LumaDeck
             }
         }
 
+        private void ApplyMaximizedBounds()
+        {
+            Screen scr = Screen.FromHandle(this.Handle);
+            Rectangle scrWork = scr.WorkingArea;
+            this.MaximizedBounds = new Rectangle(
+                scrWork.X - scr.Bounds.X,
+                scrWork.Y - scr.Bounds.Y,
+                scrWork.Width,
+                scrWork.Height);
+        }
+
         private void ShowWindow()
         {
-            this.Opacity = 1;
-            this.ShowInTaskbar = true;
             this.Show();
             if (this.WindowState == FormWindowState.Minimized)
             {
                 this.WindowState = FormWindowState.Normal;
             }
+            if (_wasMaximizedBeforeHide)
+            {
+                _wasMaximizedBeforeHide = false;
+                ApplyMaximizedBounds();
+                this.WindowState = FormWindowState.Maximized;
+            }
+            if (webView != null) webView.Visible = true;
+            this.Opacity = 1;
             this.Activate();
             NativeMethods.SetForegroundWindow(this.Handle);
+            NotifyWindowState();
             PerformAutoMonitorRescan(null);
         }
 
         private void HideToTray()
         {
-            this.Hide();
-            this.ShowInTaskbar = false;
+            try
+            {
+                bool wasMax = (this.WindowState == FormWindowState.Maximized);
+                _wasMaximizedBeforeHide = wasMax;
+                if (webView != null) webView.Visible = false;
+                if (wasMax)
+                {
+                    // Restore before hiding so WinForms/WebView2 never traps a maximized borderless window in a black frame.
+                    this.WindowState = FormWindowState.Normal;
+                }
+                this.Opacity = 0;
+                this.Hide();
+            }
+            catch { }
         }
 
         private void MainForm_FormClosing(object sender, FormClosingEventArgs e)
@@ -2619,7 +2642,26 @@ namespace LumaDeck
         private void ExitApplication()
         {
             reallyExiting = true;
+            try
+            {
+                this.Opacity = 0;
+                if (webView != null) webView.Visible = false;
+                if (this.WindowState == FormWindowState.Maximized)
+                {
+                    this.WindowState = FormWindowState.Normal;
+                }
+                this.Hide();
+            }
+            catch { }
             Cleanup();
+            try
+            {
+                if (webView != null && !webView.IsDisposed)
+                {
+                    webView.Dispose();
+                }
+            }
+            catch { }
             Application.Exit();
         }
 

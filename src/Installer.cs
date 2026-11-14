@@ -795,17 +795,32 @@ namespace LumaDeckInstaller
                     }
                 }
 
+                string startMenuFolder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Programs), "LumaDeck");
+                string desktopShortcutPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory), "LumaDeck.lnk");
+                string uninstallCmd =
+                    "cmd.exe /c " +
+                    "taskkill /f /im LumaDeck.exe >nul 2>&1 & " +
+                    "rmdir /s /q \"" + installDir + "\" >nul 2>&1 & " +
+                    "rmdir /s /q \"" + startMenuFolder + "\" >nul 2>&1 & " +
+                    "del /f /q \"" + desktopShortcutPath + "\" >nul 2>&1 & " +
+                    "reg delete \"HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Run\" /v LumaDeck /f >nul 2>&1 & " +
+                    "reg delete \"HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\LumaDeck\" /f >nul 2>&1";
+
                 using (RegistryKey uninst = Registry.CurrentUser.CreateSubKey(@"Software\Microsoft\Windows\CurrentVersion\Uninstall\LumaDeck"))
                 {
                     if (uninst != null)
                     {
-                        uninst.SetValue("DisplayName", "LumaDeck — Multi-Display Brightness Studio");
+                        uninst.SetValue("DisplayName", "LumaDeck");
                         uninst.SetValue("DisplayIcon", icoPath);
                         uninst.SetValue("InstallLocation", installDir);
-                        uninst.SetValue("Publisher", "Hamza (https://iammhamza.com/)");
+                        uninst.SetValue("Publisher", "iBlue Apps");
                         uninst.SetValue("URLInfoAbout", "https://iammhamza.com/");
                         uninst.SetValue("DisplayVersion", "3.3");
-                        uninst.SetValue("UninstallString", "cmd.exe /c taskkill /f /im LumaDeck.exe >nul 2>&1 & rmdir /s /q \"" + installDir + "\"");
+                        uninst.SetValue("NoModify", 1, RegistryValueKind.DWord);
+                        uninst.SetValue("NoRepair", 1, RegistryValueKind.DWord);
+                        uninst.SetValue("EstimatedSize", 2048, RegistryValueKind.DWord);
+                        uninst.SetValue("UninstallString", uninstallCmd);
+                        uninst.SetValue("QuietUninstallString", uninstallCmd);
                     }
                 }
 
