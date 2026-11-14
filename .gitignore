@@ -1,0 +1,18 @@
+# Build outputs & packaged binaries (distributed via GitHub Releases)
+dist/
+*.exe
+*.zip
+*.dll
+*.pdb
+
+# Local runtime & WebView2 cache
+WebView2/
+config.json
+
+# OS & editor artifacts
+.DS_Store
+Thumbs.db
+desktop.ini
+*.user
+*.suo
+.vs/
