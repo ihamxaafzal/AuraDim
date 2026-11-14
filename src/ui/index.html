@@ -1,0 +1,2667 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>LumaDeck — Multi-Display Brightness Studio</title>
+  <style>
+    :root {
+      --bg-0: #06080f;
+      --bg-1: #0b101d;
+      --card: rgba(15, 21, 37, 0.78);
+      --card-hover: rgba(20, 28, 49, 0.88);
+      --border: rgba(255, 255, 255, 0.08);
+      --border-strong: rgba(255, 255, 255, 0.16);
+      --text: #f3f6ff;
+      --text-dim: #9aa7c7;
+      --text-muted: #647191;
+      --accent: #38bdf8;
+      --accent-2: #818cf8;
+      --warm: #f59e0b;
+      --success: #10b981;
+      --danger: #f43f5e;
+      --radius: 18px;
+      --font: "Segoe UI Variable", "Segoe UI", system-ui, -apple-system, sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+    }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: var(--bg-0);
+      color: var(--text);
+      font-family: var(--font);
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* Ambient Studio Background */
+    .ambient-bg {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      pointer-events: none;
+      background:
+        radial-gradient(680px 420px at 15% 8%, rgba(56, 189, 248, 0.12), transparent 70%),
+        radial-gradient(640px 420px at 85% 15%, rgba(129, 140, 248, 0.12), transparent 70%),
+        radial-gradient(720px 460px at 50% 95%, rgba(245, 158, 11, 0.07), transparent 70%),
+        linear-gradient(180deg, #06080f 0%, #090d18 100%);
+    }
+
+    .app-shell {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      width: 100vw;
+      overflow: hidden;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    body.maximized .app-shell {
+      border-color: transparent;
+    }
+
+    /* Native 8-way Window Resize Handles */
+    .win-edge {
+      position: fixed;
+      z-index: 200;
+      background: transparent;
+    }
+    body.maximized .win-edge { display: none; }
+    .win-edge.top    { top: 0; left: 8px; right: 8px; height: 5px; cursor: ns-resize; }
+    .win-edge.bottom { bottom: 0; left: 8px; right: 8px; height: 5px; cursor: ns-resize; }
+    .win-edge.left   { left: 0; top: 8px; bottom: 8px; width: 5px; cursor: ew-resize; }
+    .win-edge.right  { right: 0; top: 8px; bottom: 8px; width: 5px; cursor: ew-resize; }
+    .win-edge.tl     { top: 0; left: 0; width: 10px; height: 10px; cursor: nwse-resize; }
+    .win-edge.tr     { top: 0; right: 0; width: 10px; height: 10px; cursor: nesw-resize; }
+    .win-edge.bl     { bottom: 0; left: 0; width: 10px; height: 10px; cursor: nesw-resize; }
+    .win-edge.br     { bottom: 0; right: 0; width: 10px; height: 10px; cursor: nwse-resize; }
+
+    /* Custom Titlebar */
+    .titlebar {
+      min-height: 54px;
+      padding: 6px clamp(10px, 2vw, 18px);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      background: rgba(9, 13, 24, 0.85);
+      border-bottom: 1px solid var(--border);
+      backdrop-filter: blur(18px);
+      flex-shrink: 0;
+    }
+
+    .drag-zone {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex: 1;
+      min-width: 0;
+      height: 100%;
+      cursor: grab;
+    }
+
+    .drag-zone:active {
+      cursor: grabbing;
+    }
+
+    .brand-logo {
+      width: 34px;
+      height: 34px;
+      border-radius: 11px;
+      background: linear-gradient(135deg, #38bdf8 0%, #6366f1 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 0 20px rgba(56, 189, 248, 0.35);
+      flex-shrink: 0;
+    }
+
+    .brand-title-wrap {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .brand-name {
+      font-size: 16px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      background: linear-gradient(90deg, #ffffff 0%, #cbd5e1 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .display-count-pill {
+      font-size: 11.5px;
+      font-weight: 600;
+      color: #7dd3fc;
+      background: rgba(56, 189, 248, 0.12);
+      border: 1px solid rgba(56, 189, 248, 0.25);
+      padding: 3px 10px;
+      border-radius: 999px;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .pulse-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: #38bdf8;
+      box-shadow: 0 0 8px #38bdf8;
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.45; transform: scale(0.82); }
+    }
+
+    .titlebar-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .tb-btn {
+      height: 33px;
+      padding: 0 12px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: rgba(255, 255, 255, 0.04);
+      color: var(--text-dim);
+      font-family: var(--font);
+      font-size: 12.5px;
+      font-weight: 600;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      cursor: pointer;
+      transition: all 0.16s ease;
+    }
+
+    .tb-btn:hover {
+      background: rgba(255, 255, 255, 0.09);
+      border-color: var(--border-strong);
+      color: var(--text);
+    }
+
+    .tb-btn.active {
+      background: rgba(56, 189, 248, 0.16);
+      border-color: rgba(56, 189, 248, 0.45);
+      color: #7dd3fc;
+      box-shadow: 0 0 16px rgba(56, 189, 248, 0.15);
+    }
+
+    .tb-icon-btn {
+      width: 33px;
+      padding: 0;
+      justify-content: center;
+    }
+
+    .tb-close:hover {
+      background: rgba(244, 63, 94, 0.22);
+      border-color: rgba(244, 63, 94, 0.45);
+      color: #fda4af;
+    }
+
+    /* Main Scroll Area */
+    .main-scroll {
+      flex: 1;
+      overflow-y: auto;
+      overflow-x: hidden;
+      padding: clamp(12px, 2vw, 20px) clamp(12px, 2.2vw, 22px) clamp(16px, 2.2vw, 24px);
+      display: flex;
+      flex-direction: column;
+      gap: clamp(12px, 1.8vw, 18px);
+    }
+
+    .main-scroll::-webkit-scrollbar {
+      width: 7px;
+    }
+    .main-scroll::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    .main-scroll::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.12);
+      border-radius: 99px;
+    }
+    .main-scroll::-webkit-scrollbar-thumb:hover {
+      background: rgba(255, 255, 255, 0.22);
+    }
+
+    /* Top Interactive Desk Map + Sync Bar */
+    .top-strip {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(240px, auto);
+      gap: 14px;
+      align-items: stretch;
+    }
+
+    .desk-map-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 12px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      flex-wrap: wrap;
+      min-width: 0;
+      backdrop-filter: blur(14px);
+    }
+
+    .desk-map-info {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+      min-width: 145px;
+    }
+
+    .desk-map-label {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-muted);
+    }
+
+    .desk-map-sub {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-dim);
+    }
+
+    .desk-monitors-stage {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      min-height: 62px;
+      flex-wrap: wrap;
+    }
+
+    .mini-screen-pill {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 12px;
+      border-radius: 13px;
+      background: rgba(255, 255, 255, 0.035);
+      border: 1px solid rgba(255, 255, 255, 0.09);
+      cursor: pointer;
+      transition: all 0.18s ease;
+    }
+
+    .mini-screen-pill:hover, .mini-screen-pill.focused {
+      background: rgba(56, 189, 248, 0.1);
+      border-color: rgba(56, 189, 248, 0.42);
+      transform: translateY(-1px);
+    }
+
+    .mini-screen-preview {
+      width: 44px;
+      height: 28px;
+      border-radius: 6px;
+      border: 2px solid rgba(255, 255, 255, 0.25);
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 10px;
+      font-weight: 800;
+      color: #0b101d;
+      text-shadow: 0 1px 2px rgba(255, 255, 255, 0.4);
+      flex-shrink: 0;
+    }
+
+    .mini-screen-meta {
+      display: flex;
+      flex-direction: column;
+      line-height: 1.25;
+    }
+
+    .mini-screen-name {
+      font-size: 12.5px;
+      font-weight: 700;
+      color: var(--text);
+      max-width: 140px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .mini-screen-stats {
+      font-size: 11px;
+      color: var(--text-dim);
+    }
+
+    .sync-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 12px 16px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      backdrop-filter: blur(14px);
+      min-width: 240px;
+    }
+
+    .sync-master-wrap {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      flex: 1;
+    }
+
+    .sync-top-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .sync-label {
+      font-size: 12.5px;
+      font-weight: 700;
+      color: var(--text);
+    }
+
+    /* Toggle Switch */
+    .switch {
+      position: relative;
+      width: 40px;
+      height: 22px;
+      flex-shrink: 0;
+    }
+    .switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+    .switch-slider {
+      position: absolute;
+      inset: 0;
+      background: rgba(255, 255, 255, 0.12);
+      border-radius: 999px;
+      cursor: pointer;
+      transition: 0.2s;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    .switch-slider:before {
+      content: "";
+      position: absolute;
+      width: 16px;
+      height: 16px;
+      left: 2px;
+      top: 2px;
+      background: #fff;
+      border-radius: 50%;
+      transition: 0.2s;
+    }
+    .switch input:checked + .switch-slider {
+      background: linear-gradient(90deg, #38bdf8, #6366f1);
+    }
+    .switch input:checked + .switch-slider:before {
+      transform: translateX(18px);
+    }
+
+    /* Monitor Grid */
+    .monitors-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr));
+      gap: clamp(12px, 1.6vw, 16px);
+    }
+
+    .monitor-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: clamp(13px, 1.8vw, 16px) clamp(14px, 2vw, 18px) clamp(14px, 2vw, 18px);
+      display: flex;
+      flex-direction: column;
+      gap: 13px;
+      min-width: 0;
+      backdrop-filter: blur(18px);
+      position: relative;
+      overflow: hidden;
+      transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+    }
+
+    .monitor-card:hover {
+      border-color: rgba(255, 255, 255, 0.16);
+    }
+
+    .monitor-card.highlighted {
+      border-color: rgba(56, 189, 248, 0.55);
+      box-shadow: 0 0 28px rgba(56, 189, 248, 0.14);
+    }
+
+    .monitor-card-glow {
+      position: absolute;
+      top: -60px;
+      right: -40px;
+      width: 220px;
+      height: 220px;
+      border-radius: 50%;
+      pointer-events: none;
+      filter: blur(55px);
+      opacity: 0.22;
+      transition: opacity 0.2s ease, background 0.2s ease;
+    }
+
+    /* TOP OF CARD: Monitor Name + Prominent Rename Bar */
+    .monitor-top-bar {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+      position: relative;
+      z-index: 1;
+    }
+
+    .monitor-badges-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    .badge-group {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+
+    .m-badge {
+      font-size: 10.5px;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      padding: 3px 8px;
+      border-radius: 7px;
+      background: rgba(255, 255, 255, 0.06);
+      color: var(--text-dim);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .m-badge.primary {
+      background: rgba(56, 189, 248, 0.14);
+      color: #7dd3fc;
+      border-color: rgba(56, 189, 248, 0.3);
+    }
+
+    .m-badge.backend {
+      background: rgba(16, 185, 129, 0.12);
+      color: #6ee7b7;
+      border-color: rgba(16, 185, 129, 0.25);
+    }
+
+    .m-badge.laptop {
+      background: rgba(168, 85, 247, 0.14);
+      color: #d8b4fe;
+      border-color: rgba(168, 85, 247, 0.3);
+    }
+
+    .monitor-res {
+      font-size: 11.5px;
+      color: var(--text-muted);
+      font-weight: 600;
+    }
+
+    .monitor-name-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .monitor-name-left {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex: 1;
+      min-width: 0;
+    }
+
+    .monitor-icon-box {
+      width: 38px;
+      height: 38px;
+      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #7dd3fc;
+      flex-shrink: 0;
+    }
+
+    .monitor-title-stack {
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+      flex: 1;
+    }
+
+    .monitor-custom-name {
+      font-size: 18px;
+      font-weight: 700;
+      color: #ffffff;
+      letter-spacing: -0.02em;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      cursor: pointer;
+    }
+
+    .monitor-hw-sub {
+      font-size: 11.5px;
+      color: var(--text-muted);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .rename-pill-btn {
+      height: 30px;
+      padding: 0 11px;
+      border-radius: 9px;
+      border: 1px solid rgba(56, 189, 248, 0.28);
+      background: rgba(56, 189, 248, 0.1);
+      color: #7dd3fc;
+      font-family: var(--font);
+      font-size: 12px;
+      font-weight: 600;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      cursor: pointer;
+      flex-shrink: 0;
+      transition: all 0.15s ease;
+    }
+
+    .rename-pill-btn:hover {
+      background: rgba(56, 189, 248, 0.22);
+      border-color: rgba(56, 189, 248, 0.55);
+      color: #ffffff;
+    }
+
+    .card-top-actions {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex-shrink: 0;
+    }
+
+    .reset-pill-btn {
+      height: 30px;
+      padding: 0 10px;
+      border-radius: 9px;
+      border: 1px solid rgba(245, 158, 11, 0.32);
+      background: rgba(245, 158, 11, 0.1);
+      color: #fcd34d;
+      font-family: var(--font);
+      font-size: 12px;
+      font-weight: 600;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      cursor: pointer;
+      flex-shrink: 0;
+      transition: all 0.15s ease;
+    }
+
+    .reset-pill-btn:hover {
+      background: rgba(245, 158, 11, 0.24);
+      border-color: rgba(245, 158, 11, 0.6);
+      color: #ffffff;
+    }
+
+    .mode-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      flex-wrap: wrap;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: 11px;
+      padding: 6px 9px;
+    }
+
+    .mode-seg {
+      display: inline-flex;
+      background: rgba(6, 9, 18, 0.7);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 8px;
+      padding: 2px;
+      gap: 2px;
+    }
+
+    .mode-btn {
+      border: none;
+      background: transparent;
+      color: var(--text-muted);
+      font-family: var(--font);
+      font-size: 11px;
+      font-weight: 600;
+      padding: 3px 9px;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: 0.14s;
+    }
+
+    .mode-btn.active {
+      background: linear-gradient(135deg, rgba(56, 189, 248, 0.25), rgba(99, 102, 241, 0.25));
+      color: #ffffff;
+      border: 1px solid rgba(56, 189, 248, 0.35);
+    }
+
+    .pin-default-btn {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-dim);
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 7px;
+      padding: 3px 8px;
+      cursor: pointer;
+      transition: 0.13s;
+    }
+
+    .pin-default-btn:hover {
+      background: rgba(255, 255, 255, 0.1);
+      color: #fff;
+    }
+
+    .rename-inline-form {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      flex: 1;
+    }
+
+    .rename-input {
+      flex: 1;
+      height: 34px;
+      padding: 0 11px;
+      border-radius: 10px;
+      border: 1px solid rgba(56, 189, 248, 0.55);
+      background: rgba(6, 10, 20, 0.9);
+      color: #ffffff;
+      font-family: var(--font);
+      font-size: 14px;
+      font-weight: 600;
+      outline: none;
+      user-select: text;
+    }
+
+    .btn-mini {
+      height: 32px;
+      padding: 0 11px;
+      border-radius: 9px;
+      border: 1px solid var(--border);
+      background: rgba(255, 255, 255, 0.06);
+      color: var(--text);
+      font-family: var(--font);
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: 0.15s;
+    }
+
+    .btn-mini.save {
+      background: linear-gradient(135deg, #38bdf8, #6366f1);
+      border: none;
+      color: #fff;
+    }
+
+    .btn-mini:hover {
+      filter: brightness(1.12);
+    }
+
+    /* Slider Controls */
+    .controls-stack {
+      display: flex;
+      flex-direction: column;
+      gap: 13px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .control-block {
+      background: rgba(8, 12, 22, 0.55);
+      border: 1px solid rgba(255, 255, 255, 0.055);
+      border-radius: 14px;
+      padding: 11px 13px;
+      display: flex;
+      flex-direction: column;
+      gap: 9px;
+    }
+
+    .control-block.disabled {
+      opacity: 0.48;
+      pointer-events: none;
+    }
+
+    .control-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .control-label {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-dim);
+    }
+
+    .control-right {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .step-btn {
+      width: 24px;
+      height: 24px;
+      border-radius: 7px;
+      border: 1px solid rgba(255, 255, 255, 0.09);
+      background: rgba(255, 255, 255, 0.04);
+      color: var(--text-dim);
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      transition: 0.12s;
+    }
+
+    .step-btn:hover {
+      background: rgba(255, 255, 255, 0.12);
+      color: #fff;
+    }
+
+    .val-badge {
+      min-width: 48px;
+      text-align: center;
+      font-size: 13.5px;
+      font-weight: 700;
+      color: #ffffff;
+      background: rgba(255, 255, 255, 0.07);
+      padding: 3px 8px;
+      border-radius: 8px;
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* Custom Range Slider */
+    .slider-wrap {
+      position: relative;
+      height: 22px;
+      display: flex;
+      align-items: center;
+    }
+
+    input[type="range"].studio-range {
+      -webkit-appearance: none;
+      width: 100%;
+      height: 8px;
+      border-radius: 999px;
+      outline: none;
+      cursor: pointer;
+      background: rgba(255, 255, 255, 0.1);
+    }
+
+    input[type="range"].studio-range::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: #ffffff;
+      border: 3px solid #38bdf8;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.55), 0 0 12px rgba(56, 189, 248, 0.45);
+      cursor: pointer;
+      transition: transform 0.12s ease;
+    }
+
+    input[type="range"].studio-range::-webkit-slider-thumb:hover {
+      transform: scale(1.14);
+    }
+
+    input[type="range"].studio-range.contrast-range::-webkit-slider-thumb {
+      border-color: #818cf8;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.55), 0 0 12px rgba(129, 140, 248, 0.45);
+    }
+
+    input[type="range"].studio-range.warmth-range::-webkit-slider-thumb {
+      border-color: #f59e0b;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.55), 0 0 12px rgba(245, 158, 11, 0.45);
+    }
+
+    .quick-chips {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 6px;
+    }
+
+    .chip-row {
+      display: flex;
+      gap: 5px;
+      flex-wrap: wrap;
+    }
+
+    .preset-chip {
+      font-size: 11px;
+      font-weight: 600;
+      padding: 3px 9px;
+      border-radius: 7px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      background: rgba(255, 255, 255, 0.035);
+      color: var(--text-dim);
+      cursor: pointer;
+      transition: 0.14s;
+    }
+
+    .preset-chip:hover {
+      background: rgba(56, 189, 248, 0.15);
+      border-color: rgba(56, 189, 248, 0.4);
+      color: #fff;
+    }
+
+    .preset-chip.active {
+      background: rgba(56, 189, 248, 0.22);
+      border-color: rgba(56, 189, 248, 0.55);
+      color: #7dd3fc;
+    }
+
+    /* Profiles Section */
+    .profiles-section {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 16px 18px 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      backdrop-filter: blur(18px);
+    }
+
+    .section-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .section-title-group {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .section-title {
+      font-size: 15.5px;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+    }
+
+    .filter-tabs {
+      display: inline-flex;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid var(--border);
+      padding: 3px;
+      border-radius: 10px;
+      gap: 2px;
+    }
+
+    .filter-tab {
+      border: none;
+      background: transparent;
+      color: var(--text-dim);
+      font-family: var(--font);
+      font-size: 12px;
+      font-weight: 600;
+      padding: 5px 11px;
+      border-radius: 7px;
+      cursor: pointer;
+      transition: 0.15s;
+    }
+
+    .filter-tab.active {
+      background: rgba(255, 255, 255, 0.11);
+      color: #ffffff;
+    }
+
+    .btn-primary {
+      height: 35px;
+      padding: 0 14px;
+      border-radius: 11px;
+      border: none;
+      background: linear-gradient(135deg, #38bdf8 0%, #6366f1 100%);
+      color: #ffffff;
+      font-family: var(--font);
+      font-size: 12.5px;
+      font-weight: 700;
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      cursor: pointer;
+      box-shadow: 0 4px 18px rgba(56, 189, 248, 0.25);
+      transition: transform 0.14s ease, filter 0.14s ease;
+    }
+
+    .btn-primary:hover {
+      filter: brightness(1.1);
+      transform: translateY(-1px);
+    }
+
+    .profiles-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(min(100%, 205px), 1fr));
+      gap: 11px;
+    }
+
+    .profile-card {
+      background: rgba(8, 12, 22, 0.65);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 15px;
+      padding: 12px 13px;
+      display: flex;
+      flex-direction: column;
+      gap: 9px;
+      min-width: 0;
+      cursor: pointer;
+      position: relative;
+      transition: all 0.16s ease;
+    }
+
+    .profile-card:hover {
+      background: rgba(18, 25, 45, 0.85);
+      border-color: rgba(255, 255, 255, 0.18);
+      transform: translateY(-2px);
+    }
+
+    .profile-card.active {
+      border-color: var(--p-color, #38bdf8);
+      background: rgba(22, 32, 58, 0.88);
+      box-shadow: 0 0 22px rgba(56, 189, 248, 0.16);
+    }
+
+    .profile-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+
+    .profile-id-row {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      min-width: 0;
+    }
+
+    .profile-emoji {
+      width: 32px;
+      height: 32px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      flex-shrink: 0;
+      background: rgba(255, 255, 255, 0.07);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .profile-name {
+      font-size: 13.5px;
+      font-weight: 700;
+      color: #ffffff;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .profile-kind {
+      font-size: 10.5px;
+      font-weight: 600;
+      color: var(--text-muted);
+    }
+
+    .profile-active-dot {
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      padding: 2px 7px;
+      border-radius: 99px;
+      background: rgba(16, 185, 129, 0.18);
+      color: #6ee7b7;
+      border: 1px solid rgba(16, 185, 129, 0.35);
+      flex-shrink: 0;
+    }
+
+    .profile-monitors-summary {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 5px;
+    }
+
+    .p-mon-tag {
+      font-size: 10.5px;
+      font-weight: 600;
+      color: var(--text-dim);
+      background: rgba(255, 255, 255, 0.045);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      padding: 2px 7px;
+      border-radius: 6px;
+      max-width: 100%;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .profile-actions {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 5px;
+      padding-top: 4px;
+      border-top: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    .p-act-btn {
+      font-size: 11px;
+      font-weight: 600;
+      padding: 3px 8px;
+      border-radius: 7px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      background: rgba(255, 255, 255, 0.04);
+      color: var(--text-dim);
+      cursor: pointer;
+      transition: 0.13s;
+    }
+
+    .p-act-btn:hover {
+      background: rgba(255, 255, 255, 0.12);
+      color: #fff;
+    }
+
+    .p-act-btn.del:hover {
+      background: rgba(244, 63, 94, 0.2);
+      border-color: rgba(244, 63, 94, 0.4);
+      color: #fda4af;
+    }
+
+    /* Modal & Drawer */
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(3, 5, 10, 0.72);
+      backdrop-filter: blur(8px);
+      z-index: 50;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .modal-backdrop.open {
+      display: flex;
+    }
+
+    .modal-card {
+      width: 100%;
+      max-width: 520px;
+      max-height: 88vh;
+      overflow-y: auto;
+      background: #0d1323;
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      border-radius: 20px;
+      padding: 20px;
+      box-shadow: 0 24px 60px rgba(0, 0, 0, 0.65);
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+    }
+
+    .modal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .modal-title {
+      font-size: 17px;
+      font-weight: 700;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .form-label {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-dim);
+    }
+
+    .text-input {
+      height: 38px;
+      padding: 0 12px;
+      border-radius: 10px;
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      background: rgba(6, 9, 18, 0.9);
+      color: #ffffff;
+      font-family: var(--font);
+      font-size: 13.5px;
+      outline: none;
+      user-select: text;
+    }
+
+    .text-input:focus {
+      border-color: #38bdf8;
+    }
+
+    .picker-row {
+      display: flex;
+      gap: 7px;
+      flex-wrap: wrap;
+    }
+
+    .emoji-opt {
+      width: 34px;
+      height: 34px;
+      border-radius: 10px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      background: rgba(255, 255, 255, 0.04);
+      font-size: 16px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .emoji-opt.selected {
+      border-color: #38bdf8;
+      background: rgba(56, 189, 248, 0.2);
+    }
+
+    .color-opt {
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      border: 2px solid transparent;
+      cursor: pointer;
+    }
+
+    .color-opt.selected {
+      border-color: #ffffff;
+      transform: scale(1.12);
+    }
+
+    .modal-mon-box {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 13px;
+      padding: 11px 13px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .modal-footer {
+      display: flex;
+      justify-content: flex-end;
+      gap: 9px;
+      padding-top: 6px;
+    }
+
+    .setting-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      padding: 11px 13px;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.07);
+      border-radius: 13px;
+    }
+
+    .setting-text h4 {
+      font-size: 13.5px;
+      font-weight: 600;
+      margin-bottom: 2px;
+    }
+
+    .setting-text p {
+      font-size: 11.5px;
+      color: var(--text-muted);
+    }
+
+    /* Toast */
+    .toast {
+      position: fixed;
+      bottom: 18px;
+      right: 22px;
+      background: rgba(15, 23, 42, 0.95);
+      border: 1px solid rgba(56, 189, 248, 0.45);
+      color: #ffffff;
+      padding: 10px 15px;
+      border-radius: 12px;
+      font-size: 12.5px;
+      font-weight: 600;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
+      opacity: 0;
+      transform: translateY(10px);
+      pointer-events: none;
+      transition: all 0.2s ease;
+      z-index: 90;
+    }
+
+    .toast.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    /* Amazing About Section */
+    .about-modal-card {
+      max-width: 580px;
+      background: radial-gradient(500px 260px at 50% -10%, rgba(56, 189, 248, 0.16), transparent 70%), #0b1020;
+    }
+
+    .about-hero {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding: 14px 16px;
+      border-radius: 16px;
+      background: linear-gradient(135deg, rgba(14, 165, 233, 0.12), rgba(99, 102, 241, 0.12));
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .about-emblem {
+      width: 58px;
+      height: 58px;
+      border-radius: 17px;
+      background: linear-gradient(135deg, #0ea5e9 0%, #4f46e5 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 8px 28px rgba(14, 165, 233, 0.35);
+      flex-shrink: 0;
+    }
+
+    .about-ver-pill {
+      display: inline-block;
+      margin-top: 4px;
+      font-size: 11px;
+      font-weight: 700;
+      color: #6ee7b7;
+      background: rgba(16, 185, 129, 0.14);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+      padding: 2px 9px;
+      border-radius: 999px;
+    }
+
+    .about-features-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 9px;
+    }
+
+    .about-feat {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.07);
+      border-radius: 13px;
+      padding: 10px 12px;
+    }
+
+    .about-feat h5 {
+      font-size: 12.5px;
+      font-weight: 700;
+      color: #ffffff;
+      margin-bottom: 2px;
+    }
+
+    .about-feat p {
+      font-size: 11px;
+      color: var(--text-muted);
+      line-height: 1.38;
+    }
+
+    .creator-card {
+      position: relative;
+      border-radius: 16px;
+      padding: 14px 16px;
+      background: linear-gradient(135deg, rgba(56, 189, 248, 0.1), rgba(168, 85, 247, 0.1));
+      border: 1px solid rgba(56, 189, 248, 0.3);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .creator-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .creator-avatar {
+      width: 42px;
+      height: 42px;
+      border-radius: 13px;
+      background: linear-gradient(135deg, #38bdf8, #a855f7);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 17px;
+      font-weight: 800;
+      color: #fff;
+      box-shadow: 0 4px 16px rgba(168, 85, 247, 0.35);
+    }
+
+    .creator-actions {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      flex-wrap: wrap;
+    }
+
+    .modal-slider-row {
+      display: grid;
+      grid-template-columns: minmax(64px, 78px) 1fr 38px;
+      align-items: center;
+      gap: 8px;
+      font-size: 12px;
+    }
+
+    /* Responsive Breakpoints across every display size, aspect ratio & DPI */
+    @media (max-width: 900px) {
+      .top-strip {
+        grid-template-columns: 1fr;
+      }
+      .sync-card {
+        min-width: 0;
+      }
+      .tb-btn {
+        padding: 0 9px;
+      }
+      .tb-btn .tb-label {
+        display: none;
+      }
+    }
+
+    @media (max-width: 640px) {
+      .display-count-pill {
+        display: none;
+      }
+      .desk-map-card {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 10px;
+      }
+      .desk-monitors-stage {
+        justify-content: flex-start;
+      }
+      .about-features-grid {
+        grid-template-columns: 1fr;
+      }
+      .about-hero {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+      .monitor-custom-name {
+        font-size: 16px;
+      }
+      .profiles-section {
+        padding: 14px;
+      }
+      .section-header {
+        align-items: stretch;
+      }
+      .section-title-group {
+        justify-content: space-between;
+      }
+      .modal-slider-row {
+        grid-template-columns: 1fr auto;
+      }
+      .modal-slider-row input[type="range"] {
+        grid-column: 1 / -1;
+        order: 3;
+      }
+    }
+
+    @media (max-width: 460px) {
+      .titlebar {
+        padding: 4px 10px;
+      }
+      .brand-name {
+        font-size: 14.5px;
+      }
+      .titlebar-actions {
+        gap: 5px;
+      }
+      .tb-btn, .tb-icon-btn {
+        height: 30px;
+        min-width: 30px;
+        padding: 0 7px;
+      }
+      .quick-chips {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+    }
+
+    @media (max-height: 680px) {
+      .titlebar {
+        min-height: 46px;
+      }
+      .main-scroll {
+        padding: 10px 14px 14px;
+        gap: 11px;
+      }
+      .monitor-card {
+        padding: 12px 14px;
+        gap: 10px;
+      }
+      .control-block {
+        padding: 9px 11px;
+        gap: 7px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="win-edge top" data-edge="12"></div>
+  <div class="win-edge bottom" data-edge="15"></div>
+  <div class="win-edge left" data-edge="10"></div>
+  <div class="win-edge right" data-edge="11"></div>
+  <div class="win-edge tl" data-edge="13"></div>
+  <div class="win-edge tr" data-edge="14"></div>
+  <div class="win-edge bl" data-edge="16"></div>
+  <div class="win-edge br" data-edge="17"></div>
+  <div class="ambient-bg"></div>
+  <div class="app-shell">
+    <!-- Custom Draggable Titlebar -->
+    <header class="titlebar">
+      <div class="drag-zone" id="dragZone">
+        <div class="brand-logo">
+          <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="4"></circle>
+            <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"></path>
+          </svg>
+        </div>
+        <div class="brand-title-wrap">
+          <span class="brand-name">LumaDeck</span>
+          <span class="display-count-pill">
+            <span class="pulse-dot"></span>
+            <span id="displayCountText">Detecting displays...</span>
+          </span>
+        </div>
+      </div>
+
+      <div class="titlebar-actions">
+        <button class="tb-btn" id="btnResetAll" title="Reset all connected displays to their default values" style="color:#fcd34d; border-color:rgba(245,158,11,0.28);">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+            <path d="M3 12a9 9 0 1 0 3-6.7L3 8"></path>
+            <path d="M3 3v5h5"></path>
+          </svg>
+          <span class="tb-label">Reset All</span>
+        </button>
+        <button class="tb-btn" id="btnIdentify" title="Show display numbers on physical screens">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+            <rect x="2" y="3" width="20" height="14" rx="2"></rect>
+            <path d="M8 21h8M12 17v4"></path>
+          </svg>
+          <span class="tb-label">Identify</span>
+        </button>
+        <button class="tb-btn" id="btnRefresh" title="Re-scan connected displays">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+            <path d="M23 4v6h-6"></path>
+            <path d="M1 20v-6h6"></path>
+            <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+          </svg>
+          <span class="tb-label">Refresh</span>
+        </button>
+        <button class="tb-btn" id="btnAbout" title="About LumaDeck & Developer">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+            <circle cx="12" cy="12" r="10"></circle>
+            <line x1="12" y1="16" x2="12" y2="12"></line>
+            <line x1="12" y1="8" x2="12.01" y2="8"></line>
+          </svg>
+          <span class="tb-label">About</span>
+        </button>
+        <button class="tb-btn tb-icon-btn" id="btnSettings" title="Settings">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1">
+            <circle cx="12" cy="12" r="3"></circle>
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+          </svg>
+        </button>
+        <button class="tb-btn tb-icon-btn" id="btnMinimize" title="Minimize">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4">
+            <line x1="5" y1="12" x2="19" y2="12"></line>
+          </svg>
+        </button>
+        <button class="tb-btn tb-icon-btn" id="btnMaximize" title="Maximize / Restore">
+          <svg id="maxIcon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+            <rect x="4" y="4" width="16" height="16" rx="2"></rect>
+          </svg>
+        </button>
+        <button class="tb-btn tb-icon-btn tb-close" id="btnClose" title="Hide to Tray (or Close)">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+      </div>
+    </header>
+
+    <!-- Scrollable Content -->
+    <main class="main-scroll">
+      <!-- Top Visual Desk Map & Sync All -->
+      <section class="top-strip">
+        <div class="desk-map-card">
+          <div class="desk-map-info">
+            <span class="desk-map-label">Connected Setup</span>
+            <span class="desk-map-sub" id="deskLayoutSub">Scanning monitors...</span>
+          </div>
+          <div class="desk-monitors-stage" id="deskMapStage"></div>
+        </div>
+
+        <div class="sync-card">
+          <div class="sync-master-wrap">
+            <div class="sync-top-row">
+              <span class="sync-label">Sync All Monitors</span>
+              <label class="switch">
+                <input type="checkbox" id="chkSyncAll" />
+                <span class="switch-slider"></span>
+              </label>
+            </div>
+            <input type="range" min="0" max="100" value="75" id="masterSlider" class="studio-range" />
+          </div>
+        </div>
+      </section>
+
+      <!-- Per-Monitor Control Cards -->
+      <section class="monitors-grid" id="monitorsGrid"></section>
+
+      <!-- Already-Made & Custom Profiles -->
+      <section class="profiles-section">
+        <div class="section-header">
+          <div class="section-title-group">
+            <h2 class="section-title">Display Profiles</h2>
+            <div class="filter-tabs" id="profileFilterTabs">
+              <button class="filter-tab active" data-filter="all">All</button>
+              <button class="filter-tab" data-filter="builtin">Already Made</button>
+              <button class="filter-tab" data-filter="custom">Custom</button>
+            </div>
+          </div>
+
+          <button class="btn-primary" id="btnNewProfile">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6">
+              <line x1="12" y1="5" x2="12" y2="19"></line>
+              <line x1="5" y1="12" x2="19" y2="12"></line>
+            </svg>
+            Save Current as Profile
+          </button>
+        </div>
+
+        <div class="profiles-grid" id="profilesGrid"></div>
+      </section>
+    </main>
+  </div>
+
+  <!-- Create / Edit Profile Modal -->
+  <div class="modal-backdrop" id="profileModal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 class="modal-title" id="profileModalTitle">Save Current Display Profile</h3>
+        <button class="tb-btn tb-icon-btn" id="btnCloseProfileModal">✕</button>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Profile Name</label>
+        <input type="text" class="text-input" id="profNameInput" placeholder="e.g., Late Night Editing" maxlength="36" />
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Icon & Accent Color</label>
+        <div class="picker-row" id="emojiPicker"></div>
+        <div class="picker-row" id="colorPicker" style="margin-top:4px;"></div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Per-Monitor Levels (captured from your screens)</label>
+        <div id="modalMonitorsList" style="display:flex; flex-direction:column; gap:8px;"></div>
+      </div>
+
+      <div class="modal-footer">
+        <button class="tb-btn" id="btnCancelProfileModal">Cancel</button>
+        <button class="btn-primary" id="btnSaveProfileModal">Save Profile</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Settings Modal -->
+  <div class="modal-backdrop" id="settingsModal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 class="modal-title">LumaDeck Settings</h3>
+        <button class="tb-btn tb-icon-btn" id="btnCloseSettingsModal">✕</button>
+      </div>
+
+      <div class="setting-row">
+        <div class="setting-text">
+          <h4>Start with Windows</h4>
+          <p>Launch quietly in system tray when you sign in (PC &amp; Laptop)</p>
+        </div>
+        <label class="switch">
+          <input type="checkbox" id="setStartup" />
+          <span class="switch-slider"></span>
+        </label>
+      </div>
+
+      <div class="setting-row">
+        <div class="setting-text">
+          <h4>Close Button Hides to Tray</h4>
+          <p>Keep LumaDeck running in the background for quick profile switching</p>
+        </div>
+        <label class="switch">
+          <input type="checkbox" id="setMinTray" />
+          <span class="switch-slider"></span>
+        </label>
+      </div>
+
+      <div class="setting-row">
+        <div class="setting-text">
+          <h4>Global Hotkey (Ctrl + Alt + B)</h4>
+          <p>Instantly show or hide LumaDeck from any app or game</p>
+        </div>
+        <label class="switch">
+          <input type="checkbox" id="setHotkey" />
+          <span class="switch-slider"></span>
+        </label>
+      </div>
+
+      <div class="setting-row">
+        <div class="setting-text">
+          <h4>Restore Already-Made Profiles</h4>
+          <p>Reset built-in presets while keeping all your custom profiles</p>
+        </div>
+        <button class="tb-btn" id="btnResetBuiltins">Reset Presets</button>
+      </div>
+
+      <div class="modal-footer" style="justify-content:space-between;">
+        <button class="tb-btn" id="btnQuitApp" style="color:#fda4af; border-color:rgba(244,63,94,0.3);">Quit LumaDeck</button>
+        <button class="btn-primary" id="btnDoneSettings">Done</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Amazing About Modal -->
+  <div class="modal-backdrop" id="aboutModal">
+    <div class="modal-card about-modal-card">
+      <div class="modal-header">
+        <h3 class="modal-title">About LumaDeck</h3>
+        <button class="tb-btn tb-icon-btn" id="btnCloseAboutModal">✕</button>
+      </div>
+
+      <div class="about-hero">
+        <div class="about-emblem">
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="4"></circle>
+            <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"></path>
+          </svg>
+        </div>
+        <div>
+          <div style="font-size:18px; font-weight:800; letter-spacing:-0.02em;">LumaDeck Display Studio</div>
+          <div style="font-size:12.5px; color:var(--text-dim); margin-top:2px;">
+            Precision brightness, contrast, warmth &amp; multi-monitor profiles for PC &amp; Laptop.
+          </div>
+          <span class="about-ver-pill">Version 3.3 &bull; Universal Native Engine</span>
+        </div>
+      </div>
+
+      <div class="about-features-grid">
+        <div class="about-feat">
+          <h5>Hardware &amp; Universal Engine</h5>
+          <p>Native DDC/CI for PC monitors, WMI for Laptop screens, plus Universal Screen Dimmer for locked gaming panels.</p>
+        </div>
+        <div class="about-feat">
+          <h5>Plug &amp; Play Auto-Detect</h5>
+          <p>Instantly detects newly connected or unplugged monitors with zero manual setup needed.</p>
+        </div>
+        <div class="about-feat">
+          <h5>Smart &amp; Custom Profiles</h5>
+          <p>Includes 6 ready-made presets plus unlimited custom per-monitor profiles &amp; 1-click Reset.</p>
+        </div>
+        <div class="about-feat">
+          <h5>100% Display Safe</h5>
+          <p>Uses official Windows display APIs only — safe for panels, backlights, and color calibration.</p>
+        </div>
+      </div>
+
+      <div class="creator-card">
+        <div class="creator-left">
+          <div class="creator-avatar">H</div>
+          <div>
+            <div style="font-size:13.5px; font-weight:700; color:#fff;">Created by Hamza</div>
+            <div style="font-size:12px; color:#7dd3fc;">https://iammhamza.com/</div>
+          </div>
+        </div>
+        <div class="creator-actions">
+          <button type="button" class="tb-btn" id="btnCopyWebLink">Copy Link</button>
+          <button type="button" class="btn-primary" id="btnVisitWebsite">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+              <circle cx="12" cy="12" r="10"></circle>
+              <line x1="2" y1="12" x2="22" y2="12"></line>
+              <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
+            </svg>
+            Visit Website
+          </button>
+        </div>
+      </div>
+
+      <div style="display:flex; align-items:center; justify-content:space-between; font-size:11.5px; color:var(--text-muted); padding: 0 2px;">
+        <span id="aboutLiveStats">Detected Displays: --</span>
+        <span>Shortcut: Ctrl + Alt + B</span>
+      </div>
+
+      <div class="modal-footer" style="padding-top:2px;">
+        <button class="btn-primary" id="btnDoneAbout">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    const state = {
+      monitors: [],
+      profiles: [],
+      activeProfileId: "",
+      settings: {
+        syncAll: false,
+        startWithWindows: false,
+        minimizeToTray: true,
+        globalHotkeyEnabled: true
+      },
+      filter: "all",
+      renamingId: null,
+      highlightedId: null,
+      editingProfile: null
+    };
+
+    const EMOJIS = ["☀️", "🎮", "🎬", "📖", "🌙", "🎯", "💻", "🎨", "⚡", "🛌"];
+    const COLORS = ["#38bdf8", "#a855f7", "#f43f5e", "#10b981", "#f59e0b", "#6366f1", "#ec4899", "#14b8a6"];
+
+    function post(payload) {
+      if (window.chrome && window.chrome.webview) {
+        window.chrome.webview.postMessage(payload);
+      }
+    }
+
+    function showToast(text) {
+      const el = document.getElementById("toast");
+      el.textContent = text;
+      el.classList.add("show");
+      clearTimeout(el._t);
+      el._t = setTimeout(() => el.classList.remove("show"), 2100);
+    }
+
+    function sliderBackground(val, colorA, colorB) {
+      const pct = Math.max(0, Math.min(100, val));
+      return `linear-gradient(90deg, ${colorA} 0%, ${colorB} ${pct}%, rgba(255,255,255,0.11) ${pct}%, rgba(255,255,255,0.11) 100%)`;
+    }
+
+    function previewScreenStyle(mon) {
+      const bri = 0.18 + (mon.brightness / 100) * 0.82;
+      const warm = mon.warmth / 100;
+      const r = Math.round(180 + 75 * bri);
+      const g = Math.round((215 - warm * 45) * bri + 25);
+      const b = Math.round((255 - warm * 135) * bri + 20);
+      return `background: radial-gradient(circle at 35% 30%, rgb(${r},${g},${b}), rgba(${Math.round(r*0.55)},${Math.round(g*0.6)},${Math.round(b*0.75)},0.95)); box-shadow: 0 0 ${Math.round(bri*14)}px rgba(${r},${g},${b},0.45);`;
+    }
+
+    function renderAll() {
+      renderHeader();
+      renderDeskMap();
+      renderMonitors();
+      renderProfiles();
+      syncSettingsUI();
+    }
+
+    function renderHeader() {
+      const n = state.monitors.length;
+      const hasLaptop = state.monitors.some(m => m.isInternal);
+      const label = n === 1
+        ? (hasLaptop ? "1 Laptop Display" : "1 Monitor Connected")
+        : `${n} Displays Connected`;
+      document.getElementById("displayCountText").textContent = label;
+      document.getElementById("deskLayoutSub").textContent = n === 0
+        ? "No monitors detected"
+        : (n === 1 ? "Single Display Mode" : `${n} Independent Displays Ready`);
+
+      const chkSync = document.getElementById("chkSyncAll");
+      chkSync.checked = !!state.settings.syncAll;
+
+      const avgBri = n > 0
+        ? Math.round(state.monitors.reduce((s, m) => s + m.brightness, 0) / n)
+        : 75;
+      const master = document.getElementById("masterSlider");
+      master.value = avgBri;
+      master.style.background = sliderBackground(avgBri, "#38bdf8", "#818cf8");
+    }
+
+    function renderDeskMap() {
+      const stage = document.getElementById("deskMapStage");
+      stage.innerHTML = "";
+
+      const sorted = [...state.monitors].sort((a, b) => a.bounds.x - b.bounds.x);
+      sorted.forEach(mon => {
+        const pill = document.createElement("div");
+        pill.className = "mini-screen-pill" + (state.highlightedId === mon.id ? " focused" : "");
+        pill.setAttribute("data-mini-id", mon.id);
+        pill.innerHTML = `
+          <div class="mini-screen-preview" style="${previewScreenStyle(mon)}">${mon.index}</div>
+          <div class="mini-screen-meta">
+            <span class="mini-screen-name">${escapeHtml(mon.customName)}</span>
+            <span class="mini-screen-stats">${mon.brightness}%${mon.warmth > 0 ? " • " + mon.warmth + "% Warm" : ""}</span>
+          </div>
+        `;
+        pill.onclick = () => {
+          state.highlightedId = mon.id;
+          renderDeskMap();
+          renderMonitors();
+          const card = document.querySelector(`[data-mon-card="${CSS.escape(mon.id)}"]`);
+          if (card) card.scrollIntoView({ behavior: "smooth", block: "nearest" });
+        };
+        stage.appendChild(pill);
+      });
+    }
+
+    function updateDeskMapPillInPlace(mon) {
+      const pill = document.querySelector(`[data-mini-id="${CSS.escape(mon.id)}"]`);
+      if (!pill) return;
+      const preview = pill.querySelector(".mini-screen-preview");
+      const stats = pill.querySelector(".mini-screen-stats");
+      if (preview) preview.setAttribute("style", previewScreenStyle(mon));
+      if (stats) stats.textContent = `${mon.brightness}%${mon.warmth > 0 ? " • " + mon.warmth + "% Warm" : ""}`;
+    }
+
+    function renderMonitors() {
+      const grid = document.getElementById("monitorsGrid");
+      grid.innerHTML = "";
+
+      state.monitors.forEach(mon => {
+        const card = document.createElement("article");
+        card.className = "monitor-card" + (state.highlightedId === mon.id ? " highlighted" : "");
+        card.setAttribute("data-mon-card", mon.id);
+
+        const glowColor = mon.warmth > 25 ? "#f59e0b" : "#38bdf8";
+        const glowOpacity = (0.08 + (mon.brightness / 100) * 0.24).toFixed(2);
+        const backendLabel = mon.backend === "wmi"
+          ? "Laptop Panel"
+          : (mon.backend === "ddc" ? "Hardware DDC/CI" : "Software Dimmer");
+
+        const def = mon.defaultValues || { brightness: 75, contrast: 75, warmth: 0 };
+        const isUniversal = (mon.controlMode === "universal") || (mon.backend === "software");
+        const isRenaming = state.renamingId === mon.id;
+
+        card.innerHTML = `
+          <div class="monitor-card-glow" style="background:${glowColor}; opacity:${glowOpacity};"></div>
+
+          <!-- TOP BAR WITH MONITOR NAME, CHANGE NAME & RESET OPTION -->
+          <div class="monitor-top-bar">
+            <div class="monitor-badges-row">
+              <div class="badge-group">
+                <span class="m-badge ${mon.isPrimary ? "primary" : ""}">Display ${mon.index}${mon.isPrimary ? " • Primary" : ""}</span>
+                <span class="m-badge ${mon.isInternal ? "laptop" : "backend"}">${backendLabel}</span>
+              </div>
+              <span class="monitor-res">${mon.bounds.width}×${mon.bounds.height}</span>
+            </div>
+
+            <div class="monitor-name-header">
+              <div class="monitor-name-left">
+                <div class="monitor-icon-box">
+                  ${mon.isInternal
+                    ? `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M2 20h20"/></svg>`
+                    : `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>`
+                  }
+                </div>
+                ${isRenaming
+                  ? `<form class="rename-inline-form" data-rename-form="${escapeAttr(mon.id)}">
+                       <input class="rename-input" type="text" maxlength="34" value="${escapeAttr(mon.customName)}" placeholder="Enter monitor name..." />
+                       <button type="submit" class="btn-mini save">Save</button>
+                       <button type="button" class="btn-mini cancel" data-cancel-rename="1">Cancel</button>
+                     </form>`
+                  : `<div class="monitor-title-stack">
+                       <div class="monitor-custom-name" title="Double-click to rename">${escapeHtml(mon.customName)}</div>
+                       <div class="monitor-hw-sub">Model: ${escapeHtml(mon.hardwareName)}</div>
+                     </div>`
+                }
+              </div>
+              ${!isRenaming
+                ? `<div class="card-top-actions">
+                     <button class="rename-pill-btn" data-start-rename="${escapeAttr(mon.id)}" title="Change Monitor Name">
+                       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3">
+                         <path d="M12 20h9"></path>
+                         <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"></path>
+                       </svg>
+                       Change Name
+                     </button>
+                     <button class="reset-pill-btn" data-reset-monitor="${escapeAttr(mon.id)}" title="Reset to default (${def.brightness}% Bri, ${def.contrast}% Con, ${def.warmth}% Warmth)">
+                       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3">
+                         <path d="M3 12a9 9 0 1 0 3-6.7L3 8"></path>
+                         <path d="M3 3v5h5"></path>
+                       </svg>
+                       Reset
+                     </button>
+                   </div>`
+                : ""
+              }
+            </div>
+
+            <!-- Control Mode & Pin Default Strip -->
+            <div class="mode-bar">
+              <div style="display:flex; align-items:center; gap:7px;">
+                <span style="font-size:11px; color:var(--text-muted); font-weight:600;">Mode:</span>
+                <div class="mode-seg" title="Use Universal if monitor OSD (MPRT/Eco/HDR) locks hardware brightness">
+                  <button type="button" class="mode-btn ${!isUniversal ? "active" : ""}" data-set-mode="hardware" ${mon.backend === "software" ? "disabled" : ""}>Hardware</button>
+                  <button type="button" class="mode-btn ${isUniversal ? "active" : ""}" data-set-mode="universal">Universal (HW + Screen)</button>
+                </div>
+              </div>
+              <button type="button" class="pin-default-btn" data-pin-default="${escapeAttr(mon.id)}" title="Save current levels as this monitor's Reset default">
+                Set Default (${def.brightness}%)
+              </button>
+            </div>
+          </div>
+
+          <!-- SLIDERS -->
+          <div class="controls-stack">
+            <!-- Brightness -->
+            <div class="control-block">
+              <div class="control-head">
+                <span class="control-label">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#38bdf8" stroke-width="2.2">
+                    <circle cx="12" cy="12" r="4"></circle>
+                    <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"></path>
+                  </svg>
+                  Brightness
+                </span>
+                <div class="control-right">
+                  <button class="step-btn" data-step="brightness" data-delta="-5">−</button>
+                  <span class="val-badge" data-val-badge="brightness">${mon.brightness}%</span>
+                  <button class="step-btn" data-step="brightness" data-delta="5">+</button>
+                </div>
+              </div>
+              <div class="slider-wrap">
+                <input type="range" min="0" max="100" value="${mon.brightness}"
+                  class="studio-range"
+                  data-slider="brightness"
+                  style="background:${sliderBackground(mon.brightness, "#38bdf8", "#818cf8")}" />
+              </div>
+              <div class="quick-chips">
+                <div class="chip-row">
+                  ${[15, 40, 70, 100].map(v =>
+                    `<button class="preset-chip ${mon.brightness === v ? "active" : ""}" data-quick-bri="${v}">${v}%</button>`
+                  ).join("")}
+                </div>
+              </div>
+            </div>
+
+            <!-- Contrast -->
+            <div class="control-block ${mon.supportsContrast ? "" : "disabled"}">
+              <div class="control-head">
+                <span class="control-label">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#818cf8" stroke-width="2.2">
+                    <circle cx="12" cy="12" r="9"></circle>
+                    <path d="M12 3v18a9 9 0 0 0 0-18z" fill="#818cf8" fill-opacity="0.35"></path>
+                  </svg>
+                  Contrast ${mon.supportsContrast ? "" : '<span style="font-size:10.5px;color:var(--text-muted);font-weight:500;">(External DDC/CI only)</span>'}
+                </span>
+                <div class="control-right">
+                  <button class="step-btn" data-step="contrast" data-delta="-5">−</button>
+                  <span class="val-badge" data-val-badge="contrast">${mon.contrast}%</span>
+                  <button class="step-btn" data-step="contrast" data-delta="5">+</button>
+                </div>
+              </div>
+              <div class="slider-wrap">
+                <input type="range" min="0" max="100" value="${mon.contrast}"
+                  class="studio-range contrast-range"
+                  data-slider="contrast"
+                  style="background:${sliderBackground(mon.contrast, "#6366f1", "#a855f7")}" />
+              </div>
+            </div>
+
+            <!-- Eye-Care Warmth -->
+            <div class="control-block">
+              <div class="control-head">
+                <span class="control-label">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2.2">
+                    <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+                  </svg>
+                  Eye-Care Warmth
+                </span>
+                <div class="control-right">
+                  <button class="preset-chip" data-reset-warmth="1" style="padding:2px 8px;">Reset</button>
+                  <span class="val-badge" data-val-badge="warmth">${mon.warmth}%</span>
+                </div>
+              </div>
+              <div class="slider-wrap">
+                <input type="range" min="0" max="100" value="${mon.warmth}"
+                  class="studio-range warmth-range"
+                  data-slider="warmth"
+                  style="background:${sliderBackground(mon.warmth, "#f59e0b", "#fb7185")}" />
+              </div>
+            </div>
+          </div>
+        `;
+
+        wireMonitorCardEvents(card, mon);
+        grid.appendChild(card);
+
+        if (isRenaming) {
+          const inp = card.querySelector(".rename-input");
+          if (inp) {
+            inp.focus();
+            inp.select();
+          }
+        }
+      });
+    }
+
+    function wireMonitorCardEvents(card, mon) {
+      const btnRename = card.querySelector("[data-start-rename]");
+      if (btnRename) {
+        btnRename.onclick = () => {
+          state.renamingId = mon.id;
+          renderMonitors();
+        };
+      }
+
+      const titleEl = card.querySelector(".monitor-custom-name");
+      if (titleEl) {
+        titleEl.ondblclick = () => {
+          state.renamingId = mon.id;
+          renderMonitors();
+        };
+      }
+
+      const form = card.querySelector("[data-rename-form]");
+      if (form) {
+        const inp = form.querySelector(".rename-input");
+        const cancel = form.querySelector("[data-cancel-rename]");
+        cancel.onclick = () => {
+          state.renamingId = null;
+          renderMonitors();
+        };
+        inp.onkeydown = (ev) => {
+          if (ev.key === "Escape") {
+            state.renamingId = null;
+            renderMonitors();
+          }
+        };
+        form.onsubmit = (ev) => {
+          ev.preventDefault();
+          const newName = inp.value.trim();
+          state.renamingId = null;
+          if (newName) {
+            mon.customName = newName;
+            post({ type: "renameMonitor", id: mon.id, name: newName });
+            showToast(`Renamed to "${newName}"`);
+          } else {
+            post({ type: "renameMonitor", id: mon.id, name: "" });
+          }
+          renderDeskMap();
+          renderMonitors();
+          renderProfiles();
+        };
+      }
+
+      // Reset single monitor
+      const btnResetMon = card.querySelector("[data-reset-monitor]");
+      if (btnResetMon) {
+        btnResetMon.onclick = () => {
+          post({ type: "resetMonitor", id: mon.id });
+        };
+      }
+
+      // Pin current values as default
+      const btnPinDef = card.querySelector("[data-pin-default]");
+      if (btnPinDef) {
+        btnPinDef.onclick = () => {
+          post({ type: "pinDefault", id: mon.id });
+        };
+      }
+
+      // Switch Hardware vs Universal mode
+      card.querySelectorAll("[data-set-mode]").forEach(btn => {
+        btn.onclick = () => {
+          const mode = btn.getAttribute("data-set-mode");
+          post({ type: "setControlMode", id: mon.id, mode });
+          showToast(mode === "universal"
+            ? `${mon.customName}: Universal Mode (HW + Screen Dimmer)`
+            : `${mon.customName}: Hardware Mode`);
+        };
+      });
+
+      // Sliders + smooth mouse wheel fine-tuning
+      card.querySelectorAll("[data-slider]").forEach(slider => {
+        const prop = slider.getAttribute("data-slider");
+        slider.oninput = () => {
+          const val = parseInt(slider.value, 10);
+          applyLocalSliderChange(card, mon, prop, val);
+        };
+        slider.addEventListener("wheel", (ev) => {
+          ev.preventDefault();
+          const step = ev.deltaY < 0 ? 2 : -2;
+          const next = Math.max(0, Math.min(100, (mon[prop] || 0) + step));
+          slider.value = next;
+          applyLocalSliderChange(card, mon, prop, next);
+        }, { passive: false });
+      });
+
+      // Step buttons
+      card.querySelectorAll("[data-step]").forEach(btn => {
+        btn.onclick = () => {
+          const prop = btn.getAttribute("data-step");
+          const delta = parseInt(btn.getAttribute("data-delta"), 10);
+          const next = Math.max(0, Math.min(100, (mon[prop] || 0) + delta));
+          const slider = card.querySelector(`[data-slider="${prop}"]`);
+          if (slider) slider.value = next;
+          applyLocalSliderChange(card, mon, prop, next);
+        };
+      });
+
+      // Quick brightness chips
+      card.querySelectorAll("[data-quick-bri]").forEach(chip => {
+        chip.onclick = () => {
+          const val = parseInt(chip.getAttribute("data-quick-bri"), 10);
+          const slider = card.querySelector('[data-slider="brightness"]');
+          if (slider) slider.value = val;
+          applyLocalSliderChange(card, mon, "brightness", val);
+          renderMonitors();
+        };
+      });
+
+      // Reset warmth
+      const resetW = card.querySelector("[data-reset-warmth]");
+      if (resetW) {
+        resetW.onclick = () => {
+          const slider = card.querySelector('[data-slider="warmth"]');
+          if (slider) slider.value = 0;
+          applyLocalSliderChange(card, mon, "warmth", 0);
+        };
+      }
+    }
+
+    function applyLocalSliderChange(card, mon, prop, val) {
+      if (state.settings.syncAll && prop === "brightness") {
+        state.monitors.forEach(m => { m.brightness = val; });
+        state.activeProfileId = "";
+        post({ type: "setAllMonitors", brightness: val });
+        renderHeader();
+        renderDeskMap();
+        document.querySelectorAll("[data-mon-card]").forEach(c => {
+          const s = c.querySelector('[data-slider="brightness"]');
+          const b = c.querySelector('[data-val-badge="brightness"]');
+          if (s) {
+            s.value = val;
+            s.style.background = sliderBackground(val, "#38bdf8", "#818cf8");
+          }
+          if (b) b.textContent = val + "%";
+        });
+        return;
+      }
+
+      const hadActive = !!state.activeProfileId;
+      mon[prop] = val;
+      state.activeProfileId = "";
+
+      const slider = card.querySelector(`[data-slider="${prop}"]`);
+      const badge = card.querySelector(`[data-val-badge="${prop}"]`);
+      if (badge) badge.textContent = val + "%";
+      if (slider) {
+        if (prop === "brightness") slider.style.background = sliderBackground(val, "#38bdf8", "#818cf8");
+        else if (prop === "contrast") slider.style.background = sliderBackground(val, "#6366f1", "#a855f7");
+        else if (prop === "warmth") slider.style.background = sliderBackground(val, "#f59e0b", "#fb7185");
+      }
+
+      if (prop === "brightness") {
+        card.querySelectorAll("[data-quick-bri]").forEach(ch => {
+          ch.classList.toggle("active", parseInt(ch.getAttribute("data-quick-bri"), 10) === val);
+        });
+        const glow = card.querySelector(".monitor-card-glow");
+        if (glow) glow.style.opacity = (0.08 + (val / 100) * 0.24).toFixed(2);
+      } else if (prop === "warmth") {
+        const glow = card.querySelector(".monitor-card-glow");
+        if (glow) glow.style.background = val > 25 ? "#f59e0b" : "#38bdf8";
+      }
+
+      const payload = { type: "setMonitor", id: mon.id };
+      payload[prop] = val;
+      post(payload);
+      updateDeskMapPillInPlace(mon);
+      if (hadActive) renderProfiles();
+    }
+
+    function renderProfiles() {
+      const grid = document.getElementById("profilesGrid");
+      grid.innerHTML = "";
+
+      const list = state.profiles.filter(p => {
+        if (state.filter === "builtin") return p.builtin;
+        if (state.filter === "custom") return !p.builtin;
+        return true;
+      });
+
+      if (list.length === 0) {
+        grid.innerHTML = `
+          <div style="grid-column: 1 / -1; padding: 24px; text-align:center; color:var(--text-muted); font-size:13px;">
+            No custom profiles yet. Set your monitors how you like them and click <strong>Save Current as Profile</strong>!
+          </div>`;
+        return;
+      }
+
+      list.forEach(prof => {
+        const isActive = state.activeProfileId === prof.id;
+        const card = document.createElement("div");
+        card.className = "profile-card" + (isActive ? " active" : "");
+        card.style.setProperty("--p-color", prof.color || "#38bdf8");
+
+        const summaryTags = state.monitors.map(m => {
+          let vals = (prof.monitors && prof.monitors[m.id]) || null;
+          if (!vals && prof.dualMode && !m.isPrimary && prof.secondaryValues) vals = prof.secondaryValues;
+          if (!vals) vals = prof.defaultValues || { brightness: 75, contrast: 75, warmth: 0 };
+          return `<span class="p-mon-tag">${escapeHtml(shortName(m.customName))}: ${vals.brightness}%</span>`;
+        }).join("");
+
+        card.innerHTML = `
+          <div class="profile-top">
+            <div class="profile-id-row">
+              <div class="profile-emoji" style="box-shadow: inset 0 0 12px ${prof.color || "#38bdf8"}33;">${prof.icon || "✨"}</div>
+              <div style="min-width:0;">
+                <div class="profile-name">${escapeHtml(prof.name)}</div>
+                <div class="profile-kind">${prof.builtin ? "Already Made" : "Custom Profile"}</div>
+              </div>
+            </div>
+            ${isActive ? `<span class="profile-active-dot">Active</span>` : ""}
+          </div>
+
+          <div class="profile-monitors-summary">${summaryTags}</div>
+
+          <div class="profile-actions">
+            ${!prof.builtin ? `<button class="p-act-btn" data-prof-update="1" title="Overwrite with current monitor levels">Update</button>` : ""}
+            <button class="p-act-btn" data-prof-edit="1">Edit</button>
+            ${!prof.builtin ? `<button class="p-act-btn del" data-prof-del="1">Delete</button>` : ""}
+          </div>
+        `;
+
+        card.onclick = (e) => {
+          if (e.target.closest("[data-prof-update], [data-prof-edit], [data-prof-del]")) return;
+          post({ type: "applyProfile", id: prof.id });
+          showToast(`Applied "${prof.name}"`);
+        };
+
+        const btnUpd = card.querySelector("[data-prof-update]");
+        if (btnUpd) {
+          btnUpd.onclick = (e) => {
+            e.stopPropagation();
+            const updated = JSON.parse(JSON.stringify(prof));
+            updated.monitors = updated.monitors || {};
+            state.monitors.forEach(m => {
+              updated.monitors[m.id] = { brightness: m.brightness, contrast: m.contrast, warmth: m.warmth };
+            });
+            post({ type: "saveProfile", profile: updated });
+            showToast(`Updated "${prof.name}" with current screen levels`);
+          };
+        }
+
+        const btnEdit = card.querySelector("[data-prof-edit]");
+        if (btnEdit) {
+          btnEdit.onclick = (e) => {
+            e.stopPropagation();
+            openProfileModal(prof);
+          };
+        }
+
+        const btnDel = card.querySelector("[data-prof-del]");
+        if (btnDel) {
+          btnDel.onclick = (e) => {
+            e.stopPropagation();
+            post({ type: "deleteProfile", id: prof.id });
+            showToast(`Deleted "${prof.name}"`);
+          };
+        }
+
+        grid.appendChild(card);
+      });
+    }
+
+    function openProfileModal(existingProf) {
+      const modal = document.getElementById("profileModal");
+      const title = document.getElementById("profileModalTitle");
+      const nameInp = document.getElementById("profNameInput");
+
+      if (existingProf) {
+        state.editingProfile = JSON.parse(JSON.stringify(existingProf));
+        title.textContent = existingProf.builtin ? `Customize "${existingProf.name}"` : `Edit "${existingProf.name}"`;
+      } else {
+        const monitorsMap = {};
+        state.monitors.forEach(m => {
+          monitorsMap[m.id] = { brightness: m.brightness, contrast: m.contrast, warmth: m.warmth };
+        });
+        const first = state.monitors[0] || { brightness: 75, contrast: 75, warmth: 0 };
+        state.editingProfile = {
+          id: "",
+          name: "",
+          icon: "✨",
+          color: "#38bdf8",
+          builtin: false,
+          dualMode: false,
+          defaultValues: { brightness: first.brightness, contrast: first.contrast, warmth: first.warmth },
+          monitors: monitorsMap
+        };
+        title.textContent = "Save Current Setup as Custom Profile";
+      }
+
+      nameInp.value = state.editingProfile.name || "";
+      renderModalPickers();
+      renderModalMonitors();
+      modal.classList.add("open");
+      setTimeout(() => nameInp.focus(), 50);
+    }
+
+    function renderModalPickers() {
+      const ep = document.getElementById("emojiPicker");
+      ep.innerHTML = "";
+      ["✨", ...EMOJIS].forEach(em => {
+        const b = document.createElement("button");
+        b.type = "button";
+        b.className = "emoji-opt" + (state.editingProfile.icon === em ? " selected" : "");
+        b.textContent = em;
+        b.onclick = () => {
+          state.editingProfile.icon = em;
+          renderModalPickers();
+        };
+        ep.appendChild(b);
+      });
+
+      const cp = document.getElementById("colorPicker");
+      cp.innerHTML = "";
+      COLORS.forEach(col => {
+        const b = document.createElement("button");
+        b.type = "button";
+        b.className = "color-opt" + (state.editingProfile.color === col ? " selected" : "");
+        b.style.background = col;
+        b.onclick = () => {
+          state.editingProfile.color = col;
+          renderModalPickers();
+        };
+        cp.appendChild(b);
+      });
+    }
+
+    function renderModalMonitors() {
+      const list = document.getElementById("modalMonitorsList");
+      list.innerHTML = "";
+      const p = state.editingProfile;
+      p.monitors = p.monitors || {};
+
+      state.monitors.forEach(m => {
+        let vals = p.monitors[m.id];
+        if (!vals) {
+          if (p.dualMode && !m.isPrimary && p.secondaryValues) vals = Object.assign({}, p.secondaryValues);
+          else vals = Object.assign({}, p.defaultValues || { brightness: m.brightness, contrast: m.contrast, warmth: m.warmth });
+          p.monitors[m.id] = vals;
+        }
+
+        const box = document.createElement("div");
+        box.className = "modal-mon-box";
+        box.innerHTML = `
+          <div style="display:flex; justify-content:space-between; align-items:center;">
+            <strong style="font-size:13px;">${escapeHtml(m.customName)}</strong>
+            <span style="font-size:11.5px; color:var(--text-dim);">Bri ${vals.brightness}% • Warmth ${vals.warmth}%</span>
+          </div>
+          <div class="modal-slider-row">
+            <span style="color:var(--text-dim);">Brightness</span>
+            <input type="range" min="0" max="100" value="${vals.brightness}" data-m-bri="${escapeAttr(m.id)}" class="studio-range" />
+            <span data-m-bri-lbl="${escapeAttr(m.id)}">${vals.brightness}%</span>
+          </div>
+          ${m.supportsContrast ? `
+          <div class="modal-slider-row">
+            <span style="color:var(--text-dim);">Contrast</span>
+            <input type="range" min="0" max="100" value="${vals.contrast}" data-m-con="${escapeAttr(m.id)}" class="studio-range contrast-range" />
+            <span data-m-con-lbl="${escapeAttr(m.id)}">${vals.contrast}%</span>
+          </div>` : ""}
+          <div class="modal-slider-row">
+            <span style="color:var(--text-dim);">Warmth</span>
+            <input type="range" min="0" max="100" value="${vals.warmth}" data-m-warm="${escapeAttr(m.id)}" class="studio-range warmth-range" />
+            <span data-m-warm-lbl="${escapeAttr(m.id)}">${vals.warmth}%</span>
+          </div>
+        `;
+
+        box.querySelector(`[data-m-bri]`).oninput = (ev) => {
+          vals.brightness = parseInt(ev.target.value, 10);
+          box.querySelector(`[data-m-bri-lbl]`).textContent = vals.brightness + "%";
+        };
+        const conInp = box.querySelector(`[data-m-con]`);
+        if (conInp) {
+          conInp.oninput = (ev) => {
+            vals.contrast = parseInt(ev.target.value, 10);
+            box.querySelector(`[data-m-con-lbl]`).textContent = vals.contrast + "%";
+          };
+        }
+        box.querySelector(`[data-m-warm]`).oninput = (ev) => {
+          vals.warmth = parseInt(ev.target.value, 10);
+          box.querySelector(`[data-m-warm-lbl]`).textContent = vals.warmth + "%";
+        };
+
+        list.appendChild(box);
+      });
+    }
+
+    function syncSettingsUI() {
+      document.getElementById("setStartup").checked = !!state.settings.startWithWindows;
+      document.getElementById("setMinTray").checked = !!state.settings.minimizeToTray;
+      document.getElementById("setHotkey").checked = !!state.settings.globalHotkeyEnabled;
+    }
+
+    function shortName(str) {
+      if (!str) return "Display";
+      return str.length > 16 ? str.slice(0, 15) + "…" : str;
+    }
+
+    function escapeHtml(s) {
+      return String(s || "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;");
+    }
+
+    function escapeAttr(s) {
+      return escapeHtml(s).replace(/'/g, "&#39;");
+    }
+
+    // Event Wiring
+    document.querySelectorAll(".win-edge").forEach(el => {
+      el.addEventListener("mousedown", (e) => {
+        if (e.button === 0) {
+          const edge = parseInt(el.getAttribute("data-edge"), 10);
+          post({ type: "resizeEdge", edge: edge });
+        }
+      });
+    });
+
+    document.getElementById("dragZone").addEventListener("mousedown", (e) => {
+      if (e.button === 0 && e.detail === 1) post({ type: "dragWindow" });
+    });
+    document.getElementById("dragZone").addEventListener("dblclick", () => {
+      post({ type: "toggleMaximize" });
+    });
+
+    document.getElementById("btnResetAll").onclick = () => post({ type: "resetAllMonitors" });
+    document.getElementById("btnIdentify").onclick = () => post({ type: "identify" });
+    document.getElementById("btnRefresh").onclick = () => post({ type: "refresh" });
+    document.getElementById("btnMinimize").onclick = () => post({ type: "minimizeWindow" });
+    document.getElementById("btnMaximize").onclick = () => post({ type: "toggleMaximize" });
+    document.getElementById("btnClose").onclick = () => post({ type: "closeWindow" });
+
+    document.getElementById("chkSyncAll").onchange = (e) => {
+      state.settings.syncAll = e.target.checked;
+      post({ type: "updateSettings", syncAll: state.settings.syncAll });
+      if (state.settings.syncAll) showToast("All monitors synced");
+    };
+
+    document.getElementById("masterSlider").oninput = (e) => {
+      const val = parseInt(e.target.value, 10);
+      e.target.style.background = sliderBackground(val, "#38bdf8", "#818cf8");
+      state.monitors.forEach(m => { m.brightness = val; });
+      post({ type: "setAllMonitors", brightness: val });
+      renderDeskMap();
+      document.querySelectorAll("[data-mon-card]").forEach(c => {
+        const s = c.querySelector('[data-slider="brightness"]');
+        const b = c.querySelector('[data-val-badge="brightness"]');
+        if (s) {
+          s.value = val;
+          s.style.background = sliderBackground(val, "#38bdf8", "#818cf8");
+        }
+        if (b) b.textContent = val + "%";
+      });
+    };
+
+    document.querySelectorAll("#profileFilterTabs .filter-tab").forEach(tab => {
+      tab.onclick = () => {
+        document.querySelectorAll("#profileFilterTabs .filter-tab").forEach(t => t.classList.remove("active"));
+        tab.classList.add("active");
+        state.filter = tab.getAttribute("data-filter");
+        renderProfiles();
+      };
+    });
+
+    document.getElementById("btnNewProfile").onclick = () => openProfileModal(null);
+    document.getElementById("btnCloseProfileModal").onclick = () => document.getElementById("profileModal").classList.remove("open");
+    document.getElementById("btnCancelProfileModal").onclick = () => document.getElementById("profileModal").classList.remove("open");
+    document.getElementById("btnSaveProfileModal").onclick = () => {
+      const name = document.getElementById("profNameInput").value.trim();
+      if (!name) {
+        showToast("Please enter a profile name");
+        document.getElementById("profNameInput").focus();
+        return;
+      }
+      state.editingProfile.name = name;
+      post({ type: "saveProfile", profile: state.editingProfile });
+      document.getElementById("profileModal").classList.remove("open");
+      showToast(`Saved profile "${name}"`);
+    };
+
+    function openAboutModal() {
+      const n = state.monitors.length;
+      const modes = state.monitors.map(m => `${m.customName} (${m.backend.toUpperCase()})`).join(" • ");
+      document.getElementById("aboutLiveStats").textContent = n > 0
+        ? `Detected Displays (${n}): ${modes}`
+        : "Detected Displays: 0";
+      document.getElementById("aboutModal").classList.add("open");
+    }
+
+    document.getElementById("btnAbout").onclick = openAboutModal;
+    document.getElementById("btnCloseAboutModal").onclick = () => document.getElementById("aboutModal").classList.remove("open");
+    document.getElementById("btnDoneAbout").onclick = () => document.getElementById("aboutModal").classList.remove("open");
+    document.getElementById("btnVisitWebsite").onclick = () => {
+      post({ type: "openUrl", url: "https://iammhamza.com/" });
+      showToast("Opening iammhamza.com in browser...");
+    };
+    document.getElementById("btnCopyWebLink").onclick = () => {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText("https://iammhamza.com/").then(() => showToast("Copied: https://iammhamza.com/"));
+      } else {
+        showToast("https://iammhamza.com/");
+      }
+    };
+
+    document.getElementById("btnSettings").onclick = () => {
+      syncSettingsUI();
+      document.getElementById("settingsModal").classList.add("open");
+    };
+    document.getElementById("btnCloseSettingsModal").onclick = () => document.getElementById("settingsModal").classList.remove("open");
+    document.getElementById("btnDoneSettings").onclick = () => document.getElementById("settingsModal").classList.remove("open");
+
+    document.getElementById("setStartup").onchange = (e) => {
+      state.settings.startWithWindows = e.target.checked;
+      post({ type: "updateSettings", startWithWindows: e.target.checked });
+    };
+    document.getElementById("setMinTray").onchange = (e) => {
+      state.settings.minimizeToTray = e.target.checked;
+      post({ type: "updateSettings", minimizeToTray: e.target.checked });
+    };
+    document.getElementById("setHotkey").onchange = (e) => {
+      state.settings.globalHotkeyEnabled = e.target.checked;
+      post({ type: "updateSettings", globalHotkeyEnabled: e.target.checked });
+    };
+    document.getElementById("btnResetBuiltins").onclick = () => {
+      post({ type: "resetBuiltins" });
+      showToast("Restored already-made profiles");
+    };
+    document.getElementById("btnQuitApp").onclick = () => post({ type: "exitApp" });
+
+    if (window.chrome && window.chrome.webview) {
+      window.chrome.webview.addEventListener("message", (event) => {
+        const msg = event.data;
+        if (!msg) return;
+        if (msg.type === "windowState") {
+          const isMax = !!msg.maximized;
+          document.body.classList.toggle("maximized", isMax);
+          const maxIcon = document.getElementById("maxIcon");
+          if (maxIcon) {
+            maxIcon.innerHTML = isMax
+              ? '<rect x="6" y="6" width="12" height="12" rx="1.5"></rect><path d="M8 4h10a2 2 0 0 1 2 2v10"></path>'
+              : '<rect x="4" y="4" width="16" height="16" rx="2"></rect>';
+          }
+          return;
+        }
+        if (msg.type !== "state") return;
+        state.monitors = msg.monitors || [];
+        state.profiles = msg.profiles || [];
+        state.activeProfileId = msg.activeProfileId || "";
+        if (msg.settings) state.settings = msg.settings;
+        renderAll();
+        if (msg.toast) showToast(msg.toast);
+      });
+    }
+
+    post({ type: "init" });
+  </script>
+</body>
+</html>
