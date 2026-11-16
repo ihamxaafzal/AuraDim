@@ -100,7 +100,6 @@ powershell -ExecutionPolicy Bypass -File .\build_msix.ps1
 
 ## Changelog — v3.4
 
-- Rebranded app and Microsoft Store identity to **AuraDim: Monitor Brightness Control** (`iBlueApps.AuraDim`), with automatic one-time migration of existing user settings.
 - Fixed fullscreen/maximized window close bug that could leave a black screen before minimizing cleanly to the system tray.
 - Fixed Windows Settings / Control Panel uninstall command to cleanly remove the install folder, Start Menu/Desktop shortcuts, startup Run entry, and Uninstall registry key.
 
