@@ -6,12 +6,12 @@
 
 **Precision brightness, contrast, color warmth & smart multi-monitor profiles for Windows PCs and Laptops.**
 
-[![Version](https://img.shields.io/badge/Version-v3.4-38bdf8?style=for-the-badge)](https://github.com/ihamxaafzal/LumaDeck/releases/latest)
-[![Platform](https://img.shields.io/badge/Windows-10%20%2F%2011-6366f1?style=for-the-badge&logo=windows)](https://github.com/ihamxaafzal/LumaDeck/releases/latest)
+[![Version](https://img.shields.io/badge/Version-v3.4-38bdf8?style=for-the-badge)](https://github.com/ihamxaafzal/AuraDim/releases/latest)
+[![Platform](https://img.shields.io/badge/Windows-10%20%2F%2011-6366f1?style=for-the-badge&logo=windows)](https://github.com/ihamxaafzal/AuraDim/releases/latest)
 [![Engine](https://img.shields.io/badge/Engine-DDC%2FCI%20%E2%80%A2%20WMI%20%E2%80%A2%20Universal-10b981?style=for-the-badge)](#-universal-3-layer-display-engine)
 [![License](https://img.shields.io/badge/License-MIT-f59e0b?style=for-the-badge)](LICENSE)
 
-[**Download Installer (`AuraDimSetup.exe v3.4`)**](https://github.com/ihamxaafzal/LumaDeck/releases/latest) &bull; [**Features**](#-key-features) &bull; [**Screenshots**](#-ui-gallery) &bull; [**Build from Source**](#-build-from-source) &bull; [**Website**](https://iammhamza.com/)
+[**Download Installer (`AuraDimSetup.exe v3.4`)**](https://github.com/ihamxaafzal/AuraDim/releases/latest) &bull; [**Features**](#-key-features) &bull; [**Screenshots**](#-ui-gallery) &bull; [**Build from Source**](#-build-from-source) &bull; [**Website**](https://iammhamza.com/)
 
 </div>
 
@@ -59,7 +59,7 @@ Controlling brightness and contrast across mixed setups—such as a **laptop scr
 ## Installation
 
 ### Standard Setup (Recommended)
-1. Download **`AuraDimSetup.exe`** from the [**Latest Release (v3.4)**](https://github.com/ihamxaafzal/LumaDeck/releases/latest).
+1. Download **`AuraDimSetup.exe`** from the [**Latest Release (v3.4)**](https://github.com/ihamxaafzal/AuraDim/releases/latest).
 2. Run **`AuraDimSetup.exe`**, choose your install folder (defaults to `%LocalAppData%\Programs\AuraDim`), and click **Install AuraDim Now**.
 
 ### Silent / Automated Install (Microsoft Store & Enterprise)
