@@ -15,10 +15,10 @@ using Microsoft.Win32;
 using Microsoft.Web.WebView2.Core;
 using Microsoft.Web.WebView2.WinForms;
 
-[assembly: System.Reflection.AssemblyVersion("3.3.0.0")]
-[assembly: System.Reflection.AssemblyFileVersion("3.3.0.0")]
+[assembly: System.Reflection.AssemblyVersion("3.4.0.0")]
+[assembly: System.Reflection.AssemblyFileVersion("3.4.0.0")]
 
-namespace LumaDeck
+namespace AuraDim
 {
     internal static class NativeMethods
     {
@@ -282,7 +282,7 @@ namespace LumaDeck
     {
         public static readonly string DataDir = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-            "LumaDeck");
+            "AuraDim");
 
         public static readonly string ConfigPath = Path.Combine(DataDir, "config.json");
         private static readonly JavaScriptSerializer Json = new JavaScriptSerializer { MaxJsonLength = 10485760 };
@@ -359,6 +359,21 @@ namespace LumaDeck
         public static AppConfig Load()
         {
             Directory.CreateDirectory(DataDir);
+            if (!File.Exists(ConfigPath))
+            {
+                try
+                {
+                    string legacyPath = Path.Combine(
+                        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                        "LumaDeck",
+                        "config.json");
+                    if (File.Exists(legacyPath))
+                    {
+                        File.Copy(legacyPath, ConfigPath, false);
+                    }
+                }
+                catch { }
+            }
             AppConfig cfg = null;
 
             if (File.Exists(ConfigPath))
@@ -431,10 +446,12 @@ namespace LumaDeck
                     if (enable)
                     {
                         string exePath = Application.ExecutablePath;
-                        key.SetValue("LumaDeck", "\"" + exePath + "\" --tray");
+                        key.SetValue("AuraDim", "\"" + exePath + "\" --tray");
+                        key.DeleteValue("LumaDeck", false);
                     }
                     else
                     {
+                        key.DeleteValue("AuraDim", false);
                         key.DeleteValue("LumaDeck", false);
                     }
                 }
@@ -1978,7 +1995,7 @@ namespace LumaDeck
             int minW = Math.Min((int)Math.Round(390 * dpiScale), Math.Max(320, workArea.Width - 24));
             int minH = Math.Min((int)Math.Round(460 * dpiScale), Math.Max(360, workArea.Height - 24));
 
-            this.Text = "LumaDeck — Multi-Display Brightness Studio";
+            this.Text = "AuraDim: Monitor Brightness Control";
             this.Size = new Size(initW, initH);
             this.MinimumSize = new Size(minW, minH);
             this.StartPosition = FormStartPosition.Manual;
@@ -1999,7 +2016,7 @@ namespace LumaDeck
             trayIcon = new NotifyIcon
             {
                 Icon = appIcon,
-                Text = "LumaDeck — Display Brightness Studio",
+                Text = "AuraDim — Monitor Brightness Control",
                 ContextMenuStrip = trayMenu,
                 Visible = true
             };
@@ -2198,7 +2215,7 @@ namespace LumaDeck
         private void RebuildTrayMenu()
         {
             trayMenu.Items.Clear();
-            var openItem = new ToolStripMenuItem("Open LumaDeck");
+            var openItem = new ToolStripMenuItem("Open AuraDim");
             openItem.Font = new Font(openItem.Font, FontStyle.Bold);
             openItem.Click += (s, e) => ShowWindow();
             trayMenu.Items.Add(openItem);
@@ -2235,7 +2252,7 @@ namespace LumaDeck
             trayMenu.Items.Add("Identify Displays", null, (s, e) => ShowIdentifyOsd());
             trayMenu.Items.Add("Refresh Displays", null, (s, e) => PerformAutoMonitorRescan("Displays refreshed"));
             trayMenu.Items.Add(new ToolStripSeparator());
-            trayMenu.Items.Add("Exit LumaDeck", null, (s, e) => ExitApplication());
+            trayMenu.Items.Add("Exit AuraDim", null, (s, e) => ExitApplication());
         }
 
         private async void MainForm_Load(object sender, EventArgs e)
@@ -2262,7 +2279,7 @@ namespace LumaDeck
                 }
 
                 webView.CoreWebView2.SetVirtualHostNameToFolderMapping(
-                    "lumadeck.local",
+                    "auradim.local",
                     uiDir,
                     CoreWebView2HostResourceAccessKind.Allow);
 
@@ -2272,11 +2289,11 @@ namespace LumaDeck
                     PerformAutoMonitorRescan(null);
                 };
 
-                webView.CoreWebView2.Navigate("https://lumadeck.local/index.html");
+                webView.CoreWebView2.Navigate("https://auradim.local/index.html");
             }
             catch (Exception ex)
             {
-                MessageBox.Show("Failed to initialize LumaDeck UI:\n" + ex.Message, "LumaDeck", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                MessageBox.Show("Failed to initialize AuraDim UI:\n" + ex.Message, "AuraDim", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
 
@@ -2705,7 +2722,7 @@ namespace LumaDeck
         private static void Main(string[] args)
         {
             bool createdNew;
-            using (var mutex = new Mutex(true, @"Local\LumaDeck_SingleInstance_Mutex", out createdNew))
+            using (var mutex = new Mutex(true, @"Local\AuraDim_SingleInstance_Mutex", out createdNew))
             {
                 if (!createdNew)
                 {

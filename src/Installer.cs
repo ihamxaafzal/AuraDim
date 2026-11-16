@@ -9,10 +9,10 @@ using System.Runtime.InteropServices;
 using System.Windows.Forms;
 using Microsoft.Win32;
 
-[assembly: System.Reflection.AssemblyVersion("3.3.0.0")]
-[assembly: System.Reflection.AssemblyFileVersion("3.3.0.0")]
+[assembly: System.Reflection.AssemblyVersion("3.4.0.0")]
+[assembly: System.Reflection.AssemblyFileVersion("3.4.0.0")]
 
-namespace LumaDeckInstaller
+namespace AuraDimInstaller
 {
     internal class GradientProgressBar : Control
     {
@@ -140,13 +140,13 @@ namespace LumaDeckInstaller
             string defaultDir = Path.Combine(
                 Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
                 "Programs",
-                "LumaDeck");
+                "AuraDim");
 
             Rectangle workArea = Screen.FromPoint(Cursor.Position).WorkingArea;
             int initW = Math.Min(S(640), Math.Max(S(380), workArea.Width - S(32)));
             int initH = Math.Min(S(560), Math.Max(S(420), workArea.Height - S(32)));
 
-            this.Text = "LumaDeck — Setup Wizard";
+            this.Text = "AuraDim — Setup Wizard";
             this.Size = new Size(initW, initH);
             this.MinimumSize = new Size(Math.Min(S(460), workArea.Width - S(20)), Math.Min(S(400), workArea.Height - S(20)));
             this.StartPosition = FormStartPosition.Manual;
@@ -209,7 +209,7 @@ namespace LumaDeckInstaller
             int textX = S(96);
             Label lblTitle = new Label
             {
-                Text = "LumaDeck Display Studio",
+                Text = "AuraDim Display Studio",
                 Font = new Font("Segoe UI Semibold", 15.5f, FontStyle.Bold),
                 ForeColor = Color.White,
                 BackColor = Color.Transparent,
@@ -222,7 +222,7 @@ namespace LumaDeckInstaller
 
             Label lblSub = new Label
             {
-                Text = "Multi-Monitor & Laptop Brightness Control  •  v3.3",
+                Text = "Monitor Brightness Control  •  v3.4",
                 Font = new Font("Segoe UI", 9.2f),
                 ForeColor = Color.FromArgb(148, 163, 184),
                 BackColor = Color.Transparent,
@@ -335,7 +335,7 @@ namespace LumaDeckInstaller
 
             lblStatus = new Label
             {
-                Text = "Ready — click Install to set up LumaDeck in your selected folder.",
+                Text = "Ready — click Install to set up AuraDim in your selected folder.",
                 Font = new Font("Segoe UI", 8.9f),
                 ForeColor = Color.FromArgb(160, 174, 198),
                 Dock = DockStyle.Fill,
@@ -358,7 +358,7 @@ namespace LumaDeckInstaller
 
             btnInstall = new Button
             {
-                Text = "Install LumaDeck Now",
+                Text = "Install AuraDim Now",
                 Font = new Font("Segoe UI Semibold", 11f, FontStyle.Bold),
                 ForeColor = Color.White,
                 BackColor = Color.FromArgb(14, 165, 233),
@@ -420,7 +420,7 @@ namespace LumaDeckInstaller
             featureStrip.RowStyles.Add(new RowStyle(SizeType.Percent, 100f));
             featureStrip.Controls.Add(CreateBadgePill("✓ Auto-Detect Screens", new Padding(0, 0, S(6), 0)), 0, 0);
             featureStrip.Controls.Add(CreateBadgePill("✓ PC + Laptop + Gaming", new Padding(S(3), 0, S(3), 0)), 1, 0);
-            featureStrip.Controls.Add(CreateBadgePill("✓ 100% Display Safe", new Padding(S(6), 0, 0, 0)), 2, 0);
+            featureStrip.Controls.Add(CreateBadgePill("✓ Offline & Lightweight", new Padding(S(6), 0, 0, 0)), 2, 0);
 
             // 2. Responsive Install Location Card
             Panel locPanel = CreateCardPanel(new Padding(S(14), S(12), S(14), S(14)), new Padding(0, 0, 0, S(12)));
@@ -501,10 +501,10 @@ namespace LumaDeckInstaller
             };
             optLayout.Controls.Add(lblOptTitle, 0, 0);
 
-            chkDesktop = CreateOption("Create Desktop Shortcut (with LumaDeck Logo)", true, S(28));
+            chkDesktop = CreateOption("Create Desktop Shortcut (with AuraDim Logo)", true, S(28));
             chkStartMenu = CreateOption("Add to Windows Start Menu", true, S(28));
             chkBootStart = CreateOption("Launch quietly in System Tray when Windows starts", false, S(28));
-            chkLaunchNow = CreateOption("Open LumaDeck immediately after installation", true, S(28));
+            chkLaunchNow = CreateOption("Open AuraDim immediately after installation", true, S(28));
 
             optLayout.Controls.Add(chkDesktop, 0, 1);
             optLayout.Controls.Add(chkStartMenu, 0, 2);
@@ -622,7 +622,7 @@ namespace LumaDeckInstaller
         {
             using (var dlg = new FolderBrowserDialog())
             {
-                dlg.Description = "Choose where you want to install LumaDeck:";
+                dlg.Description = "Choose where you want to install AuraDim:";
                 dlg.ShowNewFolderButton = true;
                 if (Directory.Exists(txtInstallDir.Text))
                 {
@@ -631,9 +631,9 @@ namespace LumaDeckInstaller
                 if (dlg.ShowDialog(this) == DialogResult.OK && !string.IsNullOrWhiteSpace(dlg.SelectedPath))
                 {
                     string chosen = dlg.SelectedPath.TrimEnd('\\', '/');
-                    if (!chosen.EndsWith("LumaDeck", StringComparison.OrdinalIgnoreCase))
+                    if (!chosen.EndsWith("AuraDim", StringComparison.OrdinalIgnoreCase))
                     {
-                        chosen = Path.Combine(chosen, "LumaDeck");
+                        chosen = Path.Combine(chosen, "AuraDim");
                     }
                     txtInstallDir.Text = chosen;
                 }
@@ -726,7 +726,11 @@ namespace LumaDeckInstaller
                 btnBrowse.Enabled = false;
                 txtInstallDir.Enabled = false;
 
-                UpdateProgress(12, "Closing any running LumaDeck instance...");
+                UpdateProgress(12, "Closing any running AuraDim instance...");
+                foreach (var p in Process.GetProcessesByName("AuraDim"))
+                {
+                    try { p.Kill(); p.WaitForExit(1500); } catch { }
+                }
                 foreach (var p in Process.GetProcessesByName("LumaDeck"))
                 {
                     try { p.Kill(); p.WaitForExit(1500); } catch { }
@@ -740,9 +744,9 @@ namespace LumaDeckInstaller
                 File.WriteAllText(writeProbe, "ok");
                 File.Delete(writeProbe);
 
-                UpdateProgress(52, "Extracting LumaDeck Display Studio...");
-                string tempZip = Path.Combine(Path.GetTempPath(), "LumaDeckPayload_" + Guid.NewGuid().ToString("N") + ".zip");
-                using (Stream resStream = Assembly.GetExecutingAssembly().GetManifestResourceStream("LumaDeckPayload.zip"))
+                UpdateProgress(52, "Extracting AuraDim Display Studio...");
+                string tempZip = Path.Combine(Path.GetTempPath(), "AuraDimPayload_" + Guid.NewGuid().ToString("N") + ".zip");
+                using (Stream resStream = Assembly.GetExecutingAssembly().GetManifestResourceStream("AuraDimPayload.zip"))
                 {
                     if (resStream == null) throw new Exception("Embedded payload resource not found.");
                     using (FileStream fs = File.Create(tempZip))
@@ -764,23 +768,23 @@ namespace LumaDeckInstaller
                 }
                 try { File.Delete(tempZip); } catch { }
 
-                string exePath = Path.Combine(installDir, "LumaDeck.exe");
-                string icoPath = Path.Combine(installDir, "lumadeck.ico");
+                string exePath = Path.Combine(installDir, "AuraDim.exe");
+                string icoPath = Path.Combine(installDir, "auradim.ico");
                 if (!File.Exists(icoPath)) icoPath = exePath;
 
-                UpdateProgress(76, "Creating shortcuts with LumaDeck logo...");
+                UpdateProgress(76, "Creating shortcuts with AuraDim logo...");
                 if (desktopShortcut)
                 {
-                    string desktopLink = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory), "LumaDeck.lnk");
-                    CreateShortcut(desktopLink, exePath, installDir, icoPath, "LumaDeck Multi-Display Brightness Studio");
+                    string desktopLink = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory), "AuraDim.lnk");
+                    CreateShortcut(desktopLink, exePath, installDir, icoPath, "AuraDim: Monitor Brightness Control");
                 }
 
                 if (startMenuShortcut)
                 {
-                    string startMenuDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Programs), "LumaDeck");
+                    string startMenuDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Programs), "AuraDim");
                     Directory.CreateDirectory(startMenuDir);
-                    string startLink = Path.Combine(startMenuDir, "LumaDeck.lnk");
-                    CreateShortcut(startLink, exePath, installDir, icoPath, "LumaDeck Multi-Display Brightness Studio");
+                    string startLink = Path.Combine(startMenuDir, "AuraDim.lnk");
+                    CreateShortcut(startLink, exePath, installDir, icoPath, "AuraDim: Monitor Brightness Control");
                 }
 
                 UpdateProgress(90, "Configuring startup & Windows app entry...");
@@ -788,34 +792,35 @@ namespace LumaDeckInstaller
                 {
                     if (runKey != null)
                     {
+                        runKey.DeleteValue("LumaDeck", false);
                         if (bootStart)
-                            runKey.SetValue("LumaDeck", "\"" + exePath + "\" --tray");
+                            runKey.SetValue("AuraDim", "\"" + exePath + "\" --tray");
                         else
-                            runKey.DeleteValue("LumaDeck", false);
+                            runKey.DeleteValue("AuraDim", false);
                     }
                 }
 
-                string startMenuFolder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Programs), "LumaDeck");
-                string desktopShortcutPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory), "LumaDeck.lnk");
+                string startMenuFolder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Programs), "AuraDim");
+                string desktopShortcutPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.DesktopDirectory), "AuraDim.lnk");
                 string uninstallCmd =
                     "cmd.exe /c " +
-                    "taskkill /f /im LumaDeck.exe >nul 2>&1 & " +
+                    "taskkill /f /im AuraDim.exe >nul 2>&1 & " +
                     "rmdir /s /q \"" + installDir + "\" >nul 2>&1 & " +
                     "rmdir /s /q \"" + startMenuFolder + "\" >nul 2>&1 & " +
                     "del /f /q \"" + desktopShortcutPath + "\" >nul 2>&1 & " +
-                    "reg delete \"HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Run\" /v LumaDeck /f >nul 2>&1 & " +
-                    "reg delete \"HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\LumaDeck\" /f >nul 2>&1";
+                    "reg delete \"HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Run\" /v AuraDim /f >nul 2>&1 & " +
+                    "reg delete \"HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\AuraDim\" /f >nul 2>&1";
 
-                using (RegistryKey uninst = Registry.CurrentUser.CreateSubKey(@"Software\Microsoft\Windows\CurrentVersion\Uninstall\LumaDeck"))
+                using (RegistryKey uninst = Registry.CurrentUser.CreateSubKey(@"Software\Microsoft\Windows\CurrentVersion\Uninstall\AuraDim"))
                 {
                     if (uninst != null)
                     {
-                        uninst.SetValue("DisplayName", "LumaDeck");
+                        uninst.SetValue("DisplayName", "AuraDim: Monitor Brightness Control");
                         uninst.SetValue("DisplayIcon", icoPath);
                         uninst.SetValue("InstallLocation", installDir);
                         uninst.SetValue("Publisher", "iBlue Apps");
                         uninst.SetValue("URLInfoAbout", "https://iammhamza.com/");
-                        uninst.SetValue("DisplayVersion", "3.3");
+                        uninst.SetValue("DisplayVersion", "3.4");
                         uninst.SetValue("NoModify", 1, RegistryValueKind.DWord);
                         uninst.SetValue("NoRepair", 1, RegistryValueKind.DWord);
                         uninst.SetValue("EstimatedSize", 2048, RegistryValueKind.DWord);
@@ -824,7 +829,7 @@ namespace LumaDeckInstaller
                     }
                 }
 
-                UpdateProgress(100, "Installation Complete! Launching LumaDeck...");
+                UpdateProgress(100, "Installation Complete! Launching AuraDim...");
                 btnInstall.Text = "✓ Installed Successfully";
                 btnInstall.BackColor = Color.FromArgb(16, 185, 129);
 
@@ -854,7 +859,7 @@ namespace LumaDeckInstaller
                 if (!silent)
                 {
                     MessageBox.Show(
-                        "Cannot write to that protected folder without Administrator rights.\nPlease choose a user folder (or run LumaDeckSetup.exe as Administrator).",
+                        "Cannot write to that protected folder without Administrator rights.\nPlease choose a user folder (or run AuraDimSetup.exe as Administrator).",
                         "Permission Required",
                         MessageBoxButtons.OK,
                         MessageBoxIcon.Warning);
@@ -866,7 +871,7 @@ namespace LumaDeckInstaller
             catch (Exception ex)
             {
                 if (!silent)
-                    MessageBox.Show("Installation failed: " + ex.Message, "LumaDeck Setup", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    MessageBox.Show("Installation failed: " + ex.Message, "AuraDim Setup", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 btnInstall.Enabled = true;
                 btnBrowse.Enabled = true;
                 txtInstallDir.Enabled = true;
@@ -926,8 +931,8 @@ namespace LumaDeckInstaller
                 string defaultDir = Path.Combine(
                     Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
                     "Programs",
-                    "LumaDeck");
-                form.RunInstallation(defaultDir, true, true, false, true, true);
+                    "AuraDim");
+                form.RunInstallation(defaultDir, true, true, false, false, true);
                 return;
             }
 
