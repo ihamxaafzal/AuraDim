@@ -3,7 +3,7 @@ $ErrorActionPreference = "Stop"
 $root = Split-Path -Parent $MyInvocation.MyCommand.Path
 $assetsDir = Join-Path $root "src\assets"
 New-Item -ItemType Directory -Force -Path $assetsDir | Out-Null
-$icoPath = Join-Path $assetsDir "lumadeck.ico"
+$icoPath = Join-Path $assetsDir "auradim.ico"
 
 $code = @'
 using System;

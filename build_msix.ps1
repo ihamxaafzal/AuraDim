@@ -1,14 +1,14 @@
 $ErrorActionPreference = "Stop"
 
 $root      = Split-Path -Parent $MyInvocation.MyCommand.Path
-$distApp   = Join-Path $root "dist\LumaDeck"
+$distApp   = Join-Path $root "dist\AuraDim"
 $sdkBin    = Join-Path $root ".tools\sdk\bin\10.0.22621.0\x64"
 $makeappx  = Join-Path $sdkBin "makeappx.exe"
 $makepri   = Join-Path $sdkBin "makepri.exe"
 $edge      = "C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe"
 
-if (!(Test-Path (Join-Path $distApp "LumaDeck.exe"))) {
-    throw "LumaDeck.exe not found in $distApp. Run build.ps1 first."
+if (!(Test-Path (Join-Path $distApp "AuraDim.exe"))) {
+    throw "AuraDim.exe not found in $distApp. Run build.ps1 first."
 }
 if (!(Test-Path $makeappx) -or !(Test-Path $makepri)) {
     throw "Windows SDK BuildTools (makeappx/makepri) not found in $sdkBin."
@@ -17,7 +17,7 @@ if (!(Test-Path $makeappx) -or !(Test-Path $makepri)) {
 $stageDir  = Join-Path $root "dist\msix_stage"
 $assetsDir = Join-Path $stageDir "Assets"
 $tempHtml  = Join-Path $root "dist\msix_html"
-$msixOut   = Join-Path $root "dist\LumaDeck_3.3.0.0_x64.msix"
+$msixOut   = Join-Path $root "dist\AuraDim_3.4.0.0_x64.msix"
 
 if (Test-Path $stageDir) { Remove-Item $stageDir -Recurse -Force }
 if (Test-Path $tempHtml) { Remove-Item $tempHtml -Recurse -Force }
@@ -25,7 +25,7 @@ if (Test-Path $msixOut)  { Remove-Item $msixOut -Force }
 
 New-Item -ItemType Directory -Force -Path $stageDir, $assetsDir, $tempHtml | Out-Null
 
-Write-Host "[1/4] Copying compiled LumaDeck x64 payload..."
+Write-Host "[1/4] Copying compiled AuraDim x64 payload..."
 Copy-Item -Path "$distApp\*" -Destination $stageDir -Recurse -Force
 
 $logoSvg = @'
@@ -106,8 +106,8 @@ function Render-WideTile($outName, $w, $h) {
 <body>
   <div class="icon">$logoSvg</div>
   <div class="txt">
-    <div class="t1">LumaDeck</div>
-    <div class="t2">Multi-Display Brightness Studio</div>
+    <div class="t1">AuraDim</div>
+    <div class="t2">Monitor Brightness Control</div>
   </div>
 </body></html>
 "@
@@ -142,13 +142,13 @@ $manifestXml = @'
   IgnorableNamespaces="uap rescap">
 
   <Identity
-    Name="iBlueApps.LumaDeck"
+    Name="iBlueApps.AuraDim"
     Publisher="CN=A3621FCC-E2BE-437C-8282-BC11897ED32F"
-    Version="3.3.0.0"
+    Version="3.4.0.0"
     ProcessorArchitecture="x64" />
 
   <Properties>
-    <DisplayName>LumaDeck</DisplayName>
+    <DisplayName>AuraDim: Monitor Brightness Control</DisplayName>
     <PublisherDisplayName>iBlue Apps</PublisherDisplayName>
     <Logo>Assets\StoreLogo.png</Logo>
   </Properties>
@@ -162,9 +162,9 @@ $manifestXml = @'
   </Resources>
 
   <Applications>
-    <Application Id="LumaDeck" Executable="LumaDeck.exe" EntryPoint="Windows.FullTrustApplication">
+    <Application Id="AuraDim" Executable="AuraDim.exe" EntryPoint="Windows.FullTrustApplication">
       <uap:VisualElements
-        DisplayName="LumaDeck"
+        DisplayName="AuraDim"
         Description="Precision multi-display brightness, contrast, color warmth, and profile manager for Windows PCs and laptops."
         BackgroundColor="#0b1326"
         Square150x150Logo="Assets\Square150x150Logo.png"

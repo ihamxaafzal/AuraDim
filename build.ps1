@@ -7,9 +7,9 @@ $wv2Net = Join-Path $workspaceRoot "wallper-win\lib\wv2\lib\net462"
 $wv2Native = Join-Path $workspaceRoot "wallper-win\lib\wv2\build\native\x64\WebView2Loader.dll"
 
 $distDir = Join-Path $root "dist"
-$appDir = Join-Path $distDir "LumaDeck"
+$appDir = Join-Path $distDir "AuraDim"
 $uiDest = Join-Path $appDir "ui"
-$icoFile = Join-Path $root "src\assets\lumadeck.ico"
+$icoFile = Join-Path $root "src\assets\auradim.ico"
 
 if (-not (Test-Path $icoFile)) {
   & (Join-Path $root "make_icon.ps1")
@@ -25,13 +25,13 @@ Copy-Item $wv2Native $appDir
 Copy-Item (Join-Path $root "src\ui\index.html") $uiDest
 Copy-Item $icoFile $appDir
 
-$outExe = Join-Path $appDir "LumaDeck.exe"
+$outExe = Join-Path $appDir "AuraDim.exe"
 $refCore = Join-Path $wv2Net "Microsoft.Web.WebView2.Core.dll"
 $refWinForms = Join-Path $wv2Net "Microsoft.Web.WebView2.WinForms.dll"
 $progCs = Join-Path $root "src\Program.cs"
 $instCs = Join-Path $root "src\Installer.cs"
 
-Write-Host "Compiling LumaDeck.exe (with embedded logo icon)..."
+Write-Host "Compiling AuraDim.exe (with embedded logo icon)..."
 & $csc /nologo /target:winexe /platform:x64 /optimize+ `
   "/win32icon:$icoFile" `
   "/out:$outExe" `
@@ -45,22 +45,22 @@ Write-Host "Compiling LumaDeck.exe (with embedded logo icon)..."
   "/r:$refWinForms" `
   "$progCs"
 
-if ($LASTEXITCODE -ne 0) { throw "LumaDeck.exe compilation failed!" }
+if ($LASTEXITCODE -ne 0) { throw "AuraDim.exe compilation failed!" }
 
 # Create payload zip
-$payloadZip = Join-Path $distDir "LumaDeckPayload.zip"
+$payloadZip = Join-Path $distDir "AuraDimPayload.zip"
 if (Test-Path $payloadZip) { Remove-Item -Force $payloadZip }
 Add-Type -AssemblyName System.IO.Compression.FileSystem
 [System.IO.Compression.ZipFile]::CreateFromDirectory($appDir, $payloadZip, [System.IO.Compression.CompressionLevel]::Optimal, $false)
 
-Write-Host "Compiling LumaDeckSetup.exe (with embedded logo icon)..."
-$setupDist = Join-Path $distDir "LumaDeckSetup.exe"
-$setupRoot = Join-Path $workspaceRoot "LumaDeckSetup.exe"
+Write-Host "Compiling AuraDimSetup.exe (with embedded logo icon)..."
+$setupDist = Join-Path $distDir "AuraDimSetup.exe"
+$setupRoot = Join-Path $workspaceRoot "AuraDimSetup.exe"
 
 & $csc /nologo /target:winexe /platform:x64 /optimize+ `
   "/win32icon:$icoFile" `
   "/out:$setupDist" `
-  "/resource:$payloadZip,LumaDeckPayload.zip" `
+  "/resource:$payloadZip,AuraDimPayload.zip" `
   /r:System.dll `
   /r:System.Core.dll `
   /r:System.Drawing.dll `
@@ -70,7 +70,7 @@ $setupRoot = Join-Path $workspaceRoot "LumaDeckSetup.exe"
   /r:Microsoft.CSharp.dll `
   "$instCs"
 
-if ($LASTEXITCODE -ne 0) { throw "LumaDeckSetup.exe compilation failed!" }
+if ($LASTEXITCODE -ne 0) { throw "AuraDimSetup.exe compilation failed!" }
 
 Copy-Item -Force $setupDist $setupRoot
 Write-Host "Build succeeded!"
